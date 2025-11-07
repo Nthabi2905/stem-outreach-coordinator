@@ -4,4 +4,4 @@ project_id = "kzqrsgerwsblgawoxoop"
 verify_jwt = false
 
 [functions.import-schools]
-verify_jwt = false
+verify_jwt = true

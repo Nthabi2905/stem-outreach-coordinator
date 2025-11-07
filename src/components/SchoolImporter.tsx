@@ -34,9 +34,13 @@ const SchoolImporter = () => {
           continue;
         }
 
-        // Call the import edge function
+        // Call the import edge function with auth header
+        const { data: { session } } = await supabase.auth.getSession()
         const { data: result, error } = await supabase.functions.invoke('import-schools', {
-          body: { schools }
+          body: { schools },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
         });
 
         if (error) throw error;
