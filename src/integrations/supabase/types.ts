@@ -64,6 +64,56 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string
+          district: string
+          id: string
+          organization_id: string
+          province: string
+          school_type: string
+          status: string
+          updated_at: string
+          visit_date: string | null
+          visit_details: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          district: string
+          id?: string
+          organization_id: string
+          province: string
+          school_type: string
+          status?: string
+          updated_at?: string
+          visit_date?: string | null
+          visit_details?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          district?: string
+          id?: string
+          organization_id?: string
+          province?: string
+          school_type?: string
+          status?: string
+          updated_at?: string
+          visit_date?: string | null
+          visit_details?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -87,6 +137,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      school_recommendations: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          enrollment_total: number | null
+          generated_data: Json
+          id: string
+          is_accepted: boolean | null
+          is_replacement: boolean | null
+          language_of_instruction: string | null
+          letter_sent_at: string | null
+          school_id: string | null
+          school_response: string | null
+          school_response_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          enrollment_total?: number | null
+          generated_data: Json
+          id?: string
+          is_accepted?: boolean | null
+          is_replacement?: boolean | null
+          language_of_instruction?: string | null
+          letter_sent_at?: string | null
+          school_id?: string | null
+          school_response?: string | null
+          school_response_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          enrollment_total?: number | null
+          generated_data?: Json
+          id?: string
+          is_accepted?: boolean | null
+          is_replacement?: boolean | null
+          language_of_instruction?: string | null
+          letter_sent_at?: string | null
+          school_id?: string | null
+          school_response?: string | null
+          school_response_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_recommendations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_recommendations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schools: {
         Row: {
