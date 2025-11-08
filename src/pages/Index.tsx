@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import Hero from "@/components/Hero";
 import SchoolFinder from "@/components/SchoolFinder";
 import SchoolImporter from "@/components/SchoolImporter";
+import { OutreachCampaignWizard } from "@/components/OutreachCampaignWizard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -112,15 +114,31 @@ const Index = () => {
 
       <Hero />
 
-      {isAdmin && !isLoading && (
-        <section className="py-20 px-6 bg-muted/30">
-          <div className="max-w-7xl mx-auto">
-            <SchoolImporter />
-          </div>
-        </section>
-      )}
-
-      <SchoolFinder />
+      <section className="container mx-auto px-4 py-12">
+        {isAdmin && !isLoading && (
+          <Tabs defaultValue="campaign" className="mb-8">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+              <TabsTrigger value="campaign">Outreach Campaign</TabsTrigger>
+              <TabsTrigger value="search">Search Schools</TabsTrigger>
+              <TabsTrigger value="import">Import Data</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="campaign" className="mt-6">
+              <OutreachCampaignWizard />
+            </TabsContent>
+            
+            <TabsContent value="search" className="mt-6">
+              <SchoolFinder />
+            </TabsContent>
+            
+            <TabsContent value="import" className="mt-6">
+              <SchoolImporter />
+            </TabsContent>
+          </Tabs>
+        )}
+        
+        {!isAdmin && <SchoolFinder />}
+      </section>
     </div>
   );
 };

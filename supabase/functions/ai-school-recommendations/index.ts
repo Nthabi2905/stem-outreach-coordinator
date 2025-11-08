@@ -11,11 +11,11 @@ serve(async (req) => {
   }
 
   try {
-    const { province, district } = await req.json();
+    const { province, district, schoolType } = await req.json();
     
-    if (!province || !district) {
+    if (!province || !district || !schoolType) {
       return new Response(
-        JSON.stringify({ error: "Province and district are required" }),
+        JSON.stringify({ error: "Province, district, and school type are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -43,6 +43,8 @@ Return EXACTLY 10 school recommendations as a JSON array with this structure:
       "name": "School Name",
       "location": "Specific area/suburb, District, Province",
       "learners": number,
+      "educators": number,
+      "languageOfInstruction": "English" or "Afrikaans" or "English and Afrikaans" or other,
       "infrastructure": "brief description of gaps",
       "lastOutreach": "Never" or "2+ years ago" or "1 year ago",
       "score": number (85-99),
@@ -51,8 +53,13 @@ Return EXACTLY 10 school recommendations as a JSON array with this structure:
   ]
 }`;
 
-    const userPrompt = `Generate 10 realistic school recommendations for STEM outreach in ${district} district, ${province} province. 
-Use real South African township and suburb names from this region. Focus on underserved communities.`;
+    const schoolTypeText = schoolType === 'primary' ? 'primary schools (grades R-7)' : 
+                         schoolType === 'high' ? 'high schools (grades 8-12)' : 
+                         'combined schools (grades R-12)';
+    
+    const userPrompt = `Generate 10 realistic ${schoolTypeText} recommendations for STEM outreach in ${district} district, ${province} province. 
+Use real South African township and suburb names from this region. Focus on underserved communities. 
+Include realistic enrollment numbers (learners), number of educators, and language of instruction for each school.`;
 
     console.log("Calling Lovable AI for school recommendations...");
     
