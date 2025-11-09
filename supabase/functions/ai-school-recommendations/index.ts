@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
+import { sanitizePromptInput } from '../_shared/promptSecurity.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +59,10 @@ serve(async (req) => {
     const body = await req.json();
     const validated = inputSchema.parse(body);
     const { province, district, schoolType, languagePreference } = validated;
+    
+    // Sanitize user inputs to prevent prompt injection
+    const cleanProvince = sanitizePromptInput(province);
+    const cleanDistrict = sanitizePromptInput(district);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -102,7 +107,7 @@ Return EXACTLY 10 school recommendations as a JSON array with this structure:
         ? ' All schools MUST have Afrikaans as their primary or sole language of instruction.' 
         : '';
     
-    const userPrompt = `Generate 10 realistic ${schoolTypeText} recommendations for STEM outreach in ${district} district, ${province} province. 
+    const userPrompt = `Generate 10 realistic ${schoolTypeText} recommendations for STEM outreach in ${cleanDistrict} district, ${cleanProvince} province. 
 Use real South African township and suburb names from this region. Focus on underserved communities.${languageFilter}
 Include realistic enrollment numbers (learners), number of educators, and language of instruction for each school.`;
 

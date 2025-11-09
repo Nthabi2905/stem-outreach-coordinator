@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Edit, Save, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { sanitizeHTML } from "@/utils/sanitize";
 
 interface LetterPreviewDialogProps {
   open: boolean;
@@ -34,8 +35,9 @@ export function LetterPreviewDialog({
   
   if (!currentSchool) return null;
 
-  const schoolName = currentSchool.generated_data?.name || "Unknown School";
+  const schoolName = sanitizeHTML(currentSchool.generated_data?.name || "Unknown School");
   const letter = currentSchool.generated_letter || "No letter generated yet.";
+  const sanitizedLetter = sanitizeHTML(letter);
 
   const handleEdit = () => {
     setEditedContent(letter);
@@ -72,7 +74,7 @@ export function LetterPreviewDialog({
       <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>{schoolName}</span>
+            <span dangerouslySetInnerHTML={{ __html: schoolName }} />
             <span className="text-sm text-muted-foreground font-normal">
               Letter {currentIndex + 1} of {schools.length}
             </span>
@@ -88,9 +90,10 @@ export function LetterPreviewDialog({
               placeholder="Edit letter content..."
             />
           ) : (
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">
-              {letter}
-            </div>
+            <div 
+              className="whitespace-pre-wrap text-sm leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: sanitizedLetter }}
+            />
           )}
         </ScrollArea>
 

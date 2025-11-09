@@ -42,6 +42,12 @@ serve(async (req) => {
       throw new Error('Insufficient permissions. Admin access required.')
     }
 
+    // Validate content type
+    const contentType = req.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      throw new Error('Invalid content type. Must be application/json');
+    }
+
     // Get user's organizations
     const { data: orgData, error: orgError } = await supabaseClient
       .from('organization_members')
@@ -54,7 +60,14 @@ serve(async (req) => {
       throw new Error('User must belong to an organization to import schools')
     }
 
-    const { schools } = await req.json()
+    // Parse and validate body size
+    const bodyText = await req.text();
+    const bodySize = new TextEncoder().encode(bodyText).length;
+    if (bodySize > 5_000_000) { // 5MB limit
+      throw new Error('Request body too large. Maximum 5MB allowed.');
+    }
+
+    const { schools } = JSON.parse(bodyText);
     
     // Validate array size
     if (!Array.isArray(schools)) {
@@ -157,6 +170,10 @@ serve(async (req) => {
         publicMessage = 'Organization access required. Please contact your administrator.';
       } else if (error.message.includes('Unauthorized') || error.message.includes('permissions')) {
         publicMessage = 'You do not have permission to import schools.';
+      } else if (error.message.includes('too large')) {
+        publicMessage = error.message;
+      } else if (error.message.includes('Invalid content type')) {
+        publicMessage = 'Invalid request format.';
       }
     }
     

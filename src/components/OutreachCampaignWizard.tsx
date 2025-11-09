@@ -480,6 +480,7 @@ export const OutreachCampaignWizard = () => {
                 placeholder="e.g., Cape Winelands"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
+                maxLength={100}
               />
             </div>
 
@@ -662,6 +663,7 @@ export const OutreachCampaignWizard = () => {
                 placeholder="e.g., 2 hours"
                 value={visitDetails.duration}
                 onChange={(e) => setVisitDetails({ ...visitDetails, duration: e.target.value })}
+                maxLength={50}
               />
             </div>
 
@@ -673,6 +675,7 @@ export const OutreachCampaignWizard = () => {
                 value={visitDetails.programDescription}
                 onChange={(e) => setVisitDetails({ ...visitDetails, programDescription: e.target.value })}
                 rows={4}
+                maxLength={2000}
               />
             </div>
 
@@ -684,6 +687,7 @@ export const OutreachCampaignWizard = () => {
                   placeholder="e.g., Grades 10-12"
                   value={visitDetails.targetGrades}
                   onChange={(e) => setVisitDetails({ ...visitDetails, targetGrades: e.target.value })}
+                  maxLength={50}
                 />
               </div>
 
@@ -694,6 +698,7 @@ export const OutreachCampaignWizard = () => {
                   placeholder="e.g., 50 learners"
                   value={visitDetails.expectedParticipants}
                   onChange={(e) => setVisitDetails({ ...visitDetails, expectedParticipants: e.target.value })}
+                  maxLength={50}
                 />
               </div>
             </div>
@@ -706,6 +711,7 @@ export const OutreachCampaignWizard = () => {
                 value={visitDetails.additionalInfo}
                 onChange={(e) => setVisitDetails({ ...visitDetails, additionalInfo: e.target.value })}
                 rows={3}
+                maxLength={1000}
               />
             </div>
 

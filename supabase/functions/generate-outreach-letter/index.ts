@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.78.0";
+import { sanitizePromptInput, sanitizeAIOutput } from '../_shared/promptSecurity.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,23 +77,30 @@ The letter should:
 - Be culturally appropriate for South African schools
 - Include contact information for questions`;
 
+    // Sanitize user inputs to prevent prompt injection
+    const cleanSchoolName = sanitizePromptInput(schoolData.name || "School");
+    const cleanLocation = sanitizePromptInput(schoolData.location || "");
+    const cleanProgramDesc = sanitizePromptInput(visitDetails.programDescription || "");
+    const cleanTargetGrades = sanitizePromptInput(visitDetails.targetGrades || "");
+    const cleanAdditionalInfo = sanitizePromptInput(visitDetails.additionalInfo || "");
+
     const userPrompt = `Generate a formal invitation letter for the following school outreach visit:
 
 Organization: ${orgName}
-School Name: ${schoolData.name}
-School Location: ${schoolData.location}
-Total Enrollment: ${schoolData.learners} learners
-Language of Instruction: ${schoolData.languageOfInstruction}
+School Name: ${cleanSchoolName}
+School Location: ${cleanLocation}
+Total Enrollment: ${schoolData.learners || 0} learners
+Language of Instruction: ${schoolData.languageOfInstruction || "English"}
 
 Visit Details:
 Date: ${visitDetails.visitDate}
 Time: ${visitDetails.visitTime}
 Duration: ${visitDetails.duration}
-Program Description: ${visitDetails.programDescription}
-Target Grades: ${visitDetails.targetGrades}
+Program Description: ${cleanProgramDesc}
+Target Grades: ${cleanTargetGrades}
 Expected Participants: ${visitDetails.expectedParticipants}
 
-Additional Information: ${visitDetails.additionalInfo || 'N/A'}
+Additional Information: ${cleanAdditionalInfo || 'N/A'}
 
 Format the letter professionally with proper salutations, body paragraphs, and closing.`;
 
@@ -127,11 +135,14 @@ Format the letter professionally with proper salutations, body paragraphs, and c
     }
 
     const data = await response.json();
-    const letter = data.choices?.[0]?.message?.content;
+    let letter = data.choices?.[0]?.message?.content;
     
     if (!letter) {
       throw new Error("No response from AI");
     }
+
+    // Sanitize AI output to prevent malicious content
+    letter = sanitizeAIOutput(letter);
 
     console.log("Letter generated successfully");
 

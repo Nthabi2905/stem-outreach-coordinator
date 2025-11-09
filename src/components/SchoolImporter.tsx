@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { parseSchoolRow } from "@/utils/parseSchoolData";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicErrorMessage } from "@/utils/errorMapping";
+import { validateFile } from "@/utils/sanitize";
 
 const SchoolImporter = () => {
   const [isImporting, setIsImporting] = useState(false);
@@ -21,11 +22,20 @@ const SchoolImporter = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    // Validate all files first
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        toast.error(`${file.name}: ${validation.error}`);
+        if (event.target) event.target.value = '';
+        return;
+      }
+    }
+
     setIsImporting(true);
     setProgress(0);
     setImportedSchools(0);
-    
-    const fileArray = Array.from(files);
     let totalImported = 0;
 
     try {
