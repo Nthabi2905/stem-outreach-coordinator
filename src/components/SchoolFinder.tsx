@@ -40,7 +40,7 @@ const SchoolFinder = () => {
       let query = supabase
         .from('schools')
         .select('*')
-        .ilike('province', `%${province}%`)
+        .eq('province', province)
         .ilike('district', `%${district}%`)
         .not('longitude', 'is', null)
         .not('latitude', 'is', null);
@@ -97,11 +97,22 @@ const SchoolFinder = () => {
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   Province
                 </label>
-                <Input
-                  placeholder="e.g., Gauteng, Western Cape"
-                  value={province}
-                  onChange={(e) => setProvince(e.target.value)}
-                />
+                <Select value={province} onValueChange={setProvince}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="EC">Eastern Cape</SelectItem>
+                    <SelectItem value="FS">Free State</SelectItem>
+                    <SelectItem value="GT">Gauteng</SelectItem>
+                    <SelectItem value="KZN">KwaZulu-Natal</SelectItem>
+                    <SelectItem value="LP">Limpopo</SelectItem>
+                    <SelectItem value="MP">Mpumalanga</SelectItem>
+                    <SelectItem value="NC">Northern Cape</SelectItem>
+                    <SelectItem value="NW">North West</SelectItem>
+                    <SelectItem value="WC">Western Cape</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
