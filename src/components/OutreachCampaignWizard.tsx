@@ -329,7 +329,7 @@ export const OutreachCampaignWizard = () => {
         .update({
           visit_details: visitDetails as any,
           visit_date: visitDetails.visitDate,
-          status: "active",
+          status: "generating",
         })
         .eq("id", campaignId);
 
