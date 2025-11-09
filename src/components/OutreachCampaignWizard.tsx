@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, MapPin, School, FileText, CheckCircle, Clock } from "lucide-react";
 import { getPublicErrorMessage } from "@/utils/errorMapping";
+import { LetterPreviewDialog } from "./LetterPreviewDialog";
 
 interface SchoolRecommendation {
   id: string;
@@ -53,6 +54,9 @@ export const OutreachCampaignWizard = () => {
     additionalInfo: "",
   });
   const [campaignId, setCampaignId] = useState<string>("");
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+  const [generatedSchools, setGeneratedSchools] = useState<any[]>([]);
 
   const handleGenerateRecommendations = async () => {
     if (!province || !district) {
@@ -111,6 +115,34 @@ export const OutreachCampaignWizard = () => {
       toast.success(`Found ${analysisData.analyzedSchools.length} schools with needs analysis!`);
     } catch (error: any) {
       console.error("[DEBUG] Error generating recommendations:", error);
+      toast.error(getPublicErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinalizeLetters = async () => {
+    setLoading(true);
+    try {
+      // Mark all letters as sent
+      const { error: updateError } = await supabase
+        .from("school_recommendations")
+        .update({ letter_sent_at: new Date().toISOString() })
+        .eq("campaign_id", campaignId)
+        .eq("is_accepted", true);
+
+      if (updateError) throw updateError;
+
+      // Update campaign status
+      await supabase
+        .from("outreach_campaigns")
+        .update({ status: "letters_sent" })
+        .eq("id", campaignId);
+
+      setStep(4);
+      toast.success("All letters have been finalized and marked as sent!");
+    } catch (error: any) {
+      console.error("Error finalizing letters:", error);
       toast.error(getPublicErrorMessage(error));
     } finally {
       setLoading(false);
@@ -306,13 +338,13 @@ export const OutreachCampaignWizard = () => {
               throw letterError;
             }
 
-            // Success - update recommendation
+            // Success - store the generated letter (don't mark as sent yet)
             await supabase
               .from("school_recommendations")
-              .update({ letter_sent_at: new Date().toISOString() })
+              .update({ generated_letter: letterData.letter })
               .eq("id", rec.id);
             
-            return true;
+            return letterData.letter;
           } catch (err) {
             if (attempt === maxRetries - 1) {
               throw err;
@@ -348,11 +380,26 @@ export const OutreachCampaignWizard = () => {
         }
       }
 
-      setStep(4);
+      // Fetch the updated recommendations with generated letters
+      const { data: updatedRecs } = await supabase
+        .from("school_recommendations")
+        .select("*")
+        .eq("campaign_id", campaignId)
+        .eq("is_accepted", true);
       
-      if (successCount > 0) {
-        toast.success(`Successfully generated ${successCount} letter${successCount !== 1 ? 's' : ''}!`);
+      if (updatedRecs) {
+        setGeneratedSchools(updatedRecs);
       }
+
+      // Update campaign status to letters_generated
+      await supabase
+        .from("outreach_campaigns")
+        .update({ status: "letters_generated" })
+        .eq("id", campaignId);
+
+      setStep(3.5); // Move to preview step
+      
+      toast.success(`Successfully generated ${successCount} letter${successCount !== 1 ? 's' : ''}! Review them before sending.`);
       if (failCount > 0) {
         toast.warning(`${failCount} letter${failCount !== 1 ? 's' : ''} failed to generate`);
       }
@@ -657,6 +704,59 @@ export const OutreachCampaignWizard = () => {
         </Card>
       )}
 
+      {/* Step 3.5: Preview Letters */}
+      {step === 3.5 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Review Generated Letters</CardTitle>
+            <CardDescription>
+              Review all letters before finalizing and sending them to schools
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {generatedSchools.map((school, index) => (
+                <div
+                  key={school.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium">{school.generated_data?.name || "Unknown School"}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {school.generated_data?.district || "Unknown District"}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCurrentPreviewIndex(index);
+                      setPreviewDialogOpen(true);
+                    }}
+                  >
+                    Preview Letter
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCurrentPreviewIndex(0);
+                  setPreviewDialogOpen(true);
+                }}
+              >
+                Review All Letters
+              </Button>
+              <Button onClick={handleFinalizeLetters} disabled={loading}>
+                {loading ? "Finalizing..." : "Finalize & Send All Letters"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Step 4: Campaign Active */}
       {step === 4 && (
         <Card>
@@ -681,6 +781,15 @@ export const OutreachCampaignWizard = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Letter Preview Dialog */}
+      <LetterPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        schools={generatedSchools}
+        currentIndex={currentPreviewIndex}
+        onNavigate={setCurrentPreviewIndex}
+      />
     </div>
   );
 };

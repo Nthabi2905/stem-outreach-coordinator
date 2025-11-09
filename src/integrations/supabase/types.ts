@@ -144,6 +144,7 @@ export type Database = {
           created_at: string
           enrollment_total: number | null
           generated_data: Json
+          generated_letter: string | null
           id: string
           is_accepted: boolean | null
           is_replacement: boolean | null
@@ -158,6 +159,7 @@ export type Database = {
           created_at?: string
           enrollment_total?: number | null
           generated_data: Json
+          generated_letter?: string | null
           id?: string
           is_accepted?: boolean | null
           is_replacement?: boolean | null
@@ -172,6 +174,7 @@ export type Database = {
           created_at?: string
           enrollment_total?: number | null
           generated_data?: Json
+          generated_letter?: string | null
           id?: string
           is_accepted?: boolean | null
           is_replacement?: boolean | null
