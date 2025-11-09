@@ -283,7 +283,7 @@ export const OutreachCampaignWizard = () => {
           province,
           district,
           school_type: schoolType,
-          status: "review",
+          status: "draft",
         })
         .select()
         .single();
@@ -329,7 +329,7 @@ export const OutreachCampaignWizard = () => {
         .update({
           visit_details: visitDetails as any,
           visit_date: visitDetails.visitDate,
-          status: "letters_generated" as const,
+          status: "active",
         })
         .eq("id", campaignId);
 
