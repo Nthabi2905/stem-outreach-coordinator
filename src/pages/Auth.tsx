@@ -19,6 +19,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"organization" | "admin" | "teacher" | "learner">("learner");
+  const [organizationName, setOrganizationName] = useState("");
+  const [organizationDescription, setOrganizationDescription] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
   useEffect(() => {
@@ -66,6 +68,22 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate organization fields if role is organization
+    if (role === 'organization') {
+      if (!organizationName.trim()) {
+        toast.error("Organization name is required");
+        return;
+      }
+      if (organizationName.length > 100) {
+        toast.error("Organization name must be less than 100 characters");
+        return;
+      }
+      if (organizationDescription.length > 500) {
+        toast.error("Organization description must be less than 500 characters");
+        return;
+      }
+    }
+    
     // Validate password strength
     const validation = validatePassword(password);
     if (!validation.isValid) {
@@ -77,15 +95,23 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      const metadata: any = {
+        full_name: fullName,
+        role: role,
+      };
+
+      // Add organization details for organization role
+      if (role === 'organization') {
+        metadata.organization_name = organizationName.trim();
+        metadata.organization_description = organizationDescription.trim();
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: fullName,
-            role: role,
-          },
+          data: metadata,
         },
       });
 
@@ -177,6 +203,39 @@ const Auth = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Organization-specific fields */}
+                {role === 'organization' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-org-name">Organization Name *</Label>
+                      <Input
+                        id="signup-org-name"
+                        type="text"
+                        placeholder="Your Organization Name"
+                        value={organizationName}
+                        onChange={(e) => setOrganizationName(e.target.value)}
+                        required
+                        maxLength={100}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-org-description">What does your organization do?</Label>
+                      <Input
+                        id="signup-org-description"
+                        type="text"
+                        placeholder="Brief description of your organization's mission and activities"
+                        value={organizationDescription}
+                        onChange={(e) => setOrganizationDescription(e.target.value)}
+                        maxLength={500}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Optional - Help schools understand your outreach goals
+                      </p>
+                    </div>
+                  </>
+                )}
+                
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
