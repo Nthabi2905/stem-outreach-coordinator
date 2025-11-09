@@ -121,6 +121,32 @@ export const OutreachCampaignWizard = () => {
     }
   };
 
+  const handleSaveEditedLetter = async (schoolId: string, editedLetter: string) => {
+    try {
+      const { error } = await supabase
+        .from("school_recommendations")
+        .update({ generated_letter: editedLetter })
+        .eq("id", schoolId);
+
+      if (error) throw error;
+
+      // Update local state
+      setGeneratedSchools(prev =>
+        prev.map(school =>
+          school.id === schoolId
+            ? { ...school, generated_letter: editedLetter }
+            : school
+        )
+      );
+
+      toast.success("Letter updated successfully!");
+    } catch (error: any) {
+      console.error("Error saving edited letter:", error);
+      toast.error(getPublicErrorMessage(error));
+      throw error;
+    }
+  };
+
   const handleFinalizeLetters = async () => {
     setLoading(true);
     try {
@@ -789,6 +815,7 @@ export const OutreachCampaignWizard = () => {
         schools={generatedSchools}
         currentIndex={currentPreviewIndex}
         onNavigate={setCurrentPreviewIndex}
+        onSave={handleSaveEditedLetter}
       />
     </div>
   );
