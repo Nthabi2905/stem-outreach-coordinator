@@ -28,27 +28,33 @@ export const parseSchoolRow = (row: any): SchoolData | null => {
     const longitude = parseFloat(row.GIS_Longitude || row.Longitude);
     const latitude = parseFloat(row.GIS_Latitude || row.Latitude);
 
+    // Helper function to convert any value to string
+    const toString = (val: any): string => {
+      if (val === null || val === undefined) return '';
+      return String(val).trim();
+    };
+
     return {
-      nat_emis: row.NatEmis || row.NATEMIS || '',
-      province: row.Province || '',
-      institution_name: row.Official_Institution_Name || row.Institution_Name || '',
-      status: row.Status || '',
-      sector: row.Sector || '',
-      type_doe: row.Type_DoE || '',
-      phase_ped: row.Phase_PED || '',
-      district: row.EIDistrict || '',
-      circuit: row.EICircuit || '',
-      quintile: row.Quintile || '',
-      no_fee_school: row.NoFeeSchool || '',
-      urban_rural: row.Urban_Rural || '',
+      nat_emis: toString(row.NatEmis || row.NATEMIS),
+      province: toString(row.Province),
+      institution_name: toString(row.Official_Institution_Name || row.Institution_Name),
+      status: toString(row.Status),
+      sector: toString(row.Sector),
+      type_doe: toString(row.Type_DoE),
+      phase_ped: toString(row.Phase_PED),
+      district: toString(row.EIDistrict),
+      circuit: toString(row.EICircuit),
+      quintile: toString(row.Quintile),
+      no_fee_school: toString(row.NoFeeSchool),
+      urban_rural: toString(row.Urban_Rural),
       longitude: !isNaN(longitude) ? longitude : null,
       latitude: !isNaN(latitude) ? latitude : null,
-      town_city: row.Town_City || row.towncity || '',
-      suburb: row.Suburb || '',
-      township_village: row.Township_Village || '',
-      street_address: row.StreetAddress || '',
-      postal_address: row.PostalAddress || '',
-      telephone: row.Telephone || '',
+      town_city: toString(row.Town_City || row.towncity),
+      suburb: toString(row.Suburb),
+      township_village: toString(row.Township_Village),
+      street_address: toString(row.StreetAddress),
+      postal_address: toString(row.PostalAddress),
+      telephone: toString(row.Telephone),
       learners_2024: parseInt(row.Learners2024) || 0,
       educators_2024: parseInt(row.Educators2024) || 0,
     };
