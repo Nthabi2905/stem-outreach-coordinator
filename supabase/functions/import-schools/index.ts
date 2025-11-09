@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,10 +56,63 @@ serve(async (req) => {
 
     const { schools } = await req.json()
     
-    console.log(`Importing ${schools.length} schools for organization ${orgData.organization_id}`)
+    // Validate array size
+    if (!Array.isArray(schools)) {
+      throw new Error('Schools must be an array')
+    }
+    
+    if (schools.length === 0) {
+      throw new Error('No schools provided')
+    }
+    
+    if (schools.length > 10000) {
+      throw new Error('Cannot import more than 10,000 schools at once')
+    }
+    
+    console.log(`Validating and importing ${schools.length} schools for organization ${orgData.organization_id}`)
+    
+    // Define validation schema
+    const schoolSchema = z.object({
+      nat_emis: z.string().min(1).max(50).trim(),
+      institution_name: z.string().min(1).max(255).trim(),
+      province: z.string().min(1).max(100).trim(),
+      district: z.string().max(100).trim().optional().nullable().default(null),
+      status: z.string().max(50).optional().nullable().default(null),
+      sector: z.string().max(50).optional().nullable().default(null),
+      type_doe: z.string().max(100).optional().nullable().default(null),
+      phase_ped: z.string().max(100).optional().nullable().default(null),
+      circuit: z.string().max(100).optional().nullable().default(null),
+      quintile: z.string().max(10).optional().nullable().default(null),
+      no_fee_school: z.string().max(50).optional().nullable().default(null),
+      urban_rural: z.string().max(50).optional().nullable().default(null),
+      town_city: z.string().max(100).optional().nullable().default(null),
+      suburb: z.string().max(100).optional().nullable().default(null),
+      township_village: z.string().max(100).optional().nullable().default(null),
+      street_address: z.string().max(500).optional().nullable().default(null),
+      postal_address: z.string().max(500).optional().nullable().default(null),
+      telephone: z.string().max(50).optional().nullable().default(null),
+      learners_2024: z.number().int().min(0).max(50000).optional().nullable().default(null),
+      educators_2024: z.number().int().min(0).max(2000).optional().nullable().default(null),
+      latitude: z.number().min(-90).max(90).optional().nullable().default(null),
+      longitude: z.number().min(-180).max(180).optional().nullable().default(null),
+    });
+    
+    const schoolsArraySchema = z.array(schoolSchema);
+    
+    // Validate all schools
+    let validatedSchools;
+    try {
+      validatedSchools = schoolsArraySchema.parse(schools);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error('Validation errors:', error.errors.slice(0, 10));
+        throw new Error(`Invalid school data: ${error.errors.slice(0, 3).map(e => `${e.path.join('.')}: ${e.message}`).join('; ')}`);
+      }
+      throw error;
+    }
 
-    // Add organization_id to all schools
-    const schoolsWithOrg = schools.map((school: any) => ({
+    // Add organization_id to all validated schools
+    const schoolsWithOrg = validatedSchools.map((school) => ({
       ...school,
       organization_id: orgData.organization_id
     }))

@@ -1,7 +1,7 @@
 project_id = "kzqrsgerwsblgawoxoop"
 
 [functions.ai-school-recommendations]
-verify_jwt = false
+verify_jwt = true
 
 [functions.import-schools]
 verify_jwt = true

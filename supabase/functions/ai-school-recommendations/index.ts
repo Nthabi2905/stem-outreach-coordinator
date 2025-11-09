@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,14 +14,49 @@ serve(async (req) => {
   }
 
   try {
-    const { province, district, schoolType } = await req.json();
-    
-    if (!province || !district || !schoolType) {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Province, district, and school type are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input
+    const inputSchema = z.object({
+      province: z.string()
+        .trim()
+        .min(2, "Province must be at least 2 characters")
+        .max(100, "Province must be less than 100 characters")
+        .regex(/^[a-zA-Z\s-]+$/, "Province can only contain letters, spaces, and hyphens"),
+      district: z.string()
+        .trim()
+        .min(2, "District must be at least 2 characters")
+        .max(100, "District must be less than 100 characters")
+        .regex(/^[a-zA-Z\s-]+$/, "District can only contain letters, spaces, and hyphens"),
+      schoolType: z.enum(['primary', 'high', 'combined'], {
+        errorMap: () => ({ message: "School type must be 'primary', 'high', or 'combined'" })
+      })
+    });
+
+    const body = await req.json();
+    const validated = inputSchema.parse(body);
+    const { province, district, schoolType } = validated;
 
     const OPENAI_API_KEY = Deno.env.get("Open_AI");
     if (!OPENAI_API_KEY) {
@@ -121,10 +158,17 @@ Include realistic enrollment numbers (learners), number of educators, and langua
 
   } catch (error) {
     console.error("Error in ai-school-recommendations:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    
+    if (error instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ error: "Invalid input", details: error.errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "An error occurred while generating recommendations" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });
