@@ -25,13 +25,23 @@ export interface SchoolData {
 
 export const parseSchoolRow = (row: any): SchoolData | null => {
   try {
-    const longitude = parseFloat(row.GIS_Longitude || row.Longitude);
-    const latitude = parseFloat(row.GIS_Latitude || row.Latitude);
-
     // Helper function to convert any value to string
     const toString = (val: any): string => {
       if (val === null || val === undefined) return '';
       return String(val).trim();
+    };
+
+    // Parse and validate coordinates
+    const parseLongitude = (val: any): number | null => {
+      const num = parseFloat(val);
+      if (isNaN(num) || num < -180 || num > 180) return null;
+      return num;
+    };
+
+    const parseLatitude = (val: any): number | null => {
+      const num = parseFloat(val);
+      if (isNaN(num) || num < -90 || num > 90) return null;
+      return num;
     };
 
     return {
@@ -47,8 +57,8 @@ export const parseSchoolRow = (row: any): SchoolData | null => {
       quintile: toString(row.Quintile),
       no_fee_school: toString(row.NoFeeSchool),
       urban_rural: toString(row.Urban_Rural),
-      longitude: !isNaN(longitude) ? longitude : null,
-      latitude: !isNaN(latitude) ? latitude : null,
+      longitude: parseLongitude(row.GIS_Longitude || row.Longitude),
+      latitude: parseLatitude(row.GIS_Latitude || row.Latitude),
       town_city: toString(row.Town_City || row.towncity),
       suburb: toString(row.Suburb),
       township_village: toString(row.Township_Village),
