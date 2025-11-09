@@ -69,6 +69,7 @@ export type Database = {
           created_at: string
           created_by: string
           district: string
+          event_date: string | null
           id: string
           organization_id: string
           province: string
@@ -82,6 +83,7 @@ export type Database = {
           created_at?: string
           created_by: string
           district: string
+          event_date?: string | null
           id?: string
           organization_id: string
           province: string
@@ -95,6 +97,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           district?: string
+          event_date?: string | null
           id?: string
           organization_id?: string
           province?: string
@@ -150,6 +153,9 @@ export type Database = {
           is_replacement: boolean | null
           language_of_instruction: string | null
           letter_sent_at: string | null
+          responded_at: string | null
+          response_status: string | null
+          response_token: string | null
           school_id: string | null
           school_response: string | null
           school_response_at: string | null
@@ -165,6 +171,9 @@ export type Database = {
           is_replacement?: boolean | null
           language_of_instruction?: string | null
           letter_sent_at?: string | null
+          responded_at?: string | null
+          response_status?: string | null
+          response_token?: string | null
           school_id?: string | null
           school_response?: string | null
           school_response_at?: string | null
@@ -180,6 +189,9 @@ export type Database = {
           is_replacement?: boolean | null
           language_of_instruction?: string | null
           letter_sent_at?: string | null
+          responded_at?: string | null
+          response_status?: string | null
+          response_token?: string | null
           school_id?: string | null
           school_response?: string | null
           school_response_at?: string | null

@@ -5,11 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, MapPin, School, FileText, CheckCircle, Clock } from "lucide-react";
+import { Loader2, MapPin, School, FileText, CheckCircle, Clock, ChevronRight, ChevronLeft, Mail } from "lucide-react";
 import { getPublicErrorMessage } from "@/utils/errorMapping";
 import { LetterPreviewDialog } from "./LetterPreviewDialog";
+import CampaignDashboard from "./CampaignDashboard";
 
 interface SchoolRecommendation {
   id: string;
@@ -37,6 +39,7 @@ interface VisitDetails {
 export const OutreachCampaignWizard = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [sendingLetters, setSendingLetters] = useState(false);
   const [letterProgress, setLetterProgress] = useState({ current: 0, total: 0 });
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
@@ -53,6 +56,7 @@ export const OutreachCampaignWizard = () => {
     expectedParticipants: "",
     additionalInfo: "",
   });
+  const [eventDate, setEventDate] = useState<string>("");
   const [campaignId, setCampaignId] = useState<string>("");
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
@@ -147,31 +151,39 @@ export const OutreachCampaignWizard = () => {
     }
   };
 
-  const handleFinalizeLetters = async () => {
-    setLoading(true);
+  const handleSendLetters = async () => {
+    if (!campaignId) return;
+
+    setSendingLetters(true);
     try {
-      // Mark all letters as sent
-      const { error: updateError } = await supabase
-        .from("school_recommendations")
-        .update({ letter_sent_at: new Date().toISOString() })
-        .eq("campaign_id", campaignId)
-        .eq("is_accepted", true);
+      // Update campaign with event date if provided
+      if (eventDate) {
+        await supabase
+          .from("outreach_campaigns")
+          .update({ event_date: eventDate })
+          .eq("id", campaignId);
+      }
 
-      if (updateError) throw updateError;
+      const { data, error } = await supabase.functions.invoke("send-campaign-letters", {
+        body: { 
+          campaignId,
+          fromEmail: "STEM Outreach <onboarding@resend.dev>",
+          fromName: "STEM Outreach Team"
+        },
+      });
 
-      // Update campaign status
-      await supabase
-        .from("outreach_campaigns")
-        .update({ status: "letters_sent" })
-        .eq("id", campaignId);
+      if (error) throw error;
 
-      setStep(4);
-      toast.success("All letters have been finalized and marked as sent!");
+      toast.success(`Successfully sent ${data.success} letters to schools!`);
+      
+      // Move to tracking dashboard
+      setStep(5);
+      
     } catch (error: any) {
-      console.error("Error finalizing letters:", error);
-      toast.error(getPublicErrorMessage(error));
+      console.error("Error sending letters:", error);
+      toast.error(error.message || "Failed to send letters");
     } finally {
-      setLoading(false);
+      setSendingLetters(false);
     }
   };
 
@@ -317,7 +329,7 @@ export const OutreachCampaignWizard = () => {
         .update({
           visit_details: visitDetails as any,
           visit_date: visitDetails.visitDate,
-          status: "letters_sent" as const,
+          status: "letters_generated" as const,
         })
         .eq("id", campaignId);
 
@@ -417,12 +429,6 @@ export const OutreachCampaignWizard = () => {
         setGeneratedSchools(updatedRecs);
       }
 
-      // Update campaign status to letters_generated
-      await supabase
-        .from("outreach_campaigns")
-        .update({ status: "letters_generated" })
-        .eq("id", campaignId);
-
       setStep(3.5); // Move to preview step
       
       toast.success(`Successfully generated ${successCount} letter${successCount !== 1 ? 's' : ''}! Review them before sending.`);
@@ -444,10 +450,13 @@ export const OutreachCampaignWizard = () => {
       {step === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Create Outreach Campaign
-            </CardTitle>
+            <div className="flex items-center justify-between mb-2">
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Create Outreach Campaign
+              </CardTitle>
+              <Badge variant="outline">Step 1 of 5</Badge>
+            </div>
             <CardDescription>
               Select province, district, and school type to generate AI recommendations
             </CardDescription>
@@ -531,13 +540,18 @@ export const OutreachCampaignWizard = () => {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <School className="h-5 w-5" />
-                Review Generated Schools ({recommendations.length})
-              </CardTitle>
-              <CardDescription>
-                Select schools to include in your outreach campaign
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <School className="h-5 w-5" />
+                    Review Generated Schools ({recommendations.length})
+                  </CardTitle>
+                  <CardDescription>
+                    Select schools to include in your outreach campaign
+                  </CardDescription>
+                </div>
+                <Badge variant="outline">Step 2 of 5</Badge>
+              </div>
             </CardHeader>
           </Card>
 
@@ -595,6 +609,7 @@ export const OutreachCampaignWizard = () => {
 
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>
+              <ChevronLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
             <Button variant="outline" onClick={handleGenerateMoreSchools} disabled={loading}>
@@ -614,7 +629,10 @@ export const OutreachCampaignWizard = () => {
                   Processing...
                 </>
               ) : (
-                `Accept ${selectedSchools.length} Selected School${selectedSchools.length !== 1 ? "s" : ""}`
+                <>
+                  Accept {selectedSchools.length} Selected School{selectedSchools.length !== 1 ? "s" : ""}
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </>
               )}
             </Button>
           </div>
@@ -625,13 +643,18 @@ export const OutreachCampaignWizard = () => {
       {step === 3 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Enter Visit Details
-            </CardTitle>
-            <CardDescription>
-              Provide information about the planned outreach visit
-            </CardDescription>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Enter Visit Details
+                </CardTitle>
+                <CardDescription>
+                  Provide information about the planned outreach visit
+                </CardDescription>
+              </div>
+              <Badge variant="outline">Step 3 of 5</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -715,8 +738,22 @@ export const OutreachCampaignWizard = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="eventDate">Event Date (Optional)</Label>
+              <Input
+                id="eventDate"
+                type="datetime-local"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Set the event date to enable countdown after all schools confirm
+              </p>
+            </div>
+
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep(2)}>
+                <ChevronLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
               <Button onClick={handleGenerateLetters} disabled={loading} className="flex-1">
@@ -728,7 +765,10 @@ export const OutreachCampaignWizard = () => {
                     </span>
                   </div>
                 ) : (
-                  "Generate & Send Letters"
+                  <>
+                    Generate Letters
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </>
                 )}
               </Button>
             </div>
@@ -740,10 +780,15 @@ export const OutreachCampaignWizard = () => {
       {step === 3.5 && (
         <Card>
           <CardHeader>
-            <CardTitle>Review Generated Letters</CardTitle>
-            <CardDescription>
-              Review all letters before finalizing and sending them to schools
-            </CardDescription>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <CardTitle>Review Generated Letters</CardTitle>
+                <CardDescription>
+                  Review and edit letters before sending them to schools
+                </CardDescription>
+              </div>
+              <Badge variant="outline">Step 4 of 5</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -771,7 +816,7 @@ export const OutreachCampaignWizard = () => {
               ))}
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-4 border-t">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -781,15 +826,25 @@ export const OutreachCampaignWizard = () => {
               >
                 Review All Letters
               </Button>
-              <Button onClick={handleFinalizeLetters} disabled={loading}>
-                {loading ? "Finalizing..." : "Finalize & Send All Letters"}
+              <Button onClick={handleSendLetters} disabled={sendingLetters} className="flex-1">
+                {sendingLetters ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending Letters...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Send Letters to Schools
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 4: Campaign Active */}
+      {/* Step 4: Campaign Active (Legacy - kept for backward compatibility) */}
       {step === 4 && (
         <Card>
           <CardHeader>
@@ -812,6 +867,29 @@ export const OutreachCampaignWizard = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Step 5: Campaign Dashboard with Response Tracking */}
+      {step === 5 && campaignId && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Campaign Tracking Dashboard</CardTitle>
+                  <CardDescription>
+                    Monitor school responses and track progress toward your event
+                  </CardDescription>
+                </div>
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  Letters Sent
+                </Badge>
+              </div>
+            </CardHeader>
+          </Card>
+
+          <CampaignDashboard campaignId={campaignId} />
+        </div>
       )}
 
       {/* Letter Preview Dialog */}
