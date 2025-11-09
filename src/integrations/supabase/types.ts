@@ -120,6 +120,83 @@ export type Database = {
           },
         ]
       }
+      outreach_requests: {
+        Row: {
+          additional_notes: string | null
+          alternative_date: string | null
+          contact_email: string
+          contact_person: string
+          contact_phone: string | null
+          created_at: string
+          expected_participants: number | null
+          grade_levels: string[] | null
+          id: string
+          organization_id: string | null
+          outreach_type: string
+          preferred_date: string | null
+          response_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_name: string
+          status: string
+          updated_at: string
+          user_id: string
+          workshop_topic: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          alternative_date?: string | null
+          contact_email: string
+          contact_person: string
+          contact_phone?: string | null
+          created_at?: string
+          expected_participants?: number | null
+          grade_levels?: string[] | null
+          id?: string
+          organization_id?: string | null
+          outreach_type: string
+          preferred_date?: string | null
+          response_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          workshop_topic?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          alternative_date?: string | null
+          contact_email?: string
+          contact_person?: string
+          contact_phone?: string | null
+          created_at?: string
+          expected_participants?: number | null
+          grade_levels?: string[] | null
+          id?: string
+          organization_id?: string | null
+          outreach_type?: string
+          preferred_date?: string | null
+          response_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          workshop_topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -342,7 +419,7 @@ export type Database = {
       is_current_user_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "organization" | "admin" | "teacher" | "learner"
+      app_role: "organization" | "admin" | "school_official" | "learner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -470,7 +547,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["organization", "admin", "teacher", "learner"],
+      app_role: ["organization", "admin", "school_official", "learner"],
     },
   },
 } as const

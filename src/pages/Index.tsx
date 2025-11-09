@@ -10,6 +10,7 @@ import Hero from "@/components/Hero";
 import SchoolFinder from "@/components/SchoolFinder";
 import SchoolImporter from "@/components/SchoolImporter";
 import { OutreachCampaignWizard } from "@/components/OutreachCampaignWizard";
+import { OutreachRequestForm } from "@/components/OutreachRequestForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -156,18 +157,16 @@ const Index = () => {
               </Tabs>
             )}
             
-            {/* Teachers - Request outreach form (placeholder) */}
-            {userRole === 'teacher' && !isAdmin && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-card border rounded-lg p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Teacher Portal</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Submit outreach requests to connect with organizations
+            {/* School Officials - Request outreach form */}
+            {userRole === 'school_official' && !isAdmin && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h2 className="text-3xl font-bold mb-2">School Outreach Portal</h2>
+                  <p className="text-muted-foreground">
+                    Submit a request for STEM outreach programs at your school
                   </p>
-                  <Button size="lg" disabled>
-                    Submit Outreach Request (Coming Soon)
-                  </Button>
                 </div>
+                <OutreachRequestForm />
               </div>
             )}
             

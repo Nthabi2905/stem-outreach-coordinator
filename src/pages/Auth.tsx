@@ -18,7 +18,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"organization" | "admin" | "teacher" | "learner">("learner");
+  const [role, setRole] = useState<"organization" | "admin" | "school_official" | "learner">("learner");
   const [organizationName, setOrganizationName] = useState("");
   const [organizationDescription, setOrganizationDescription] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
@@ -198,7 +198,7 @@ const Auth = () => {
                     <SelectContent>
                       <SelectItem value="organization">Organization (Create outreach campaigns)</SelectItem>
                       <SelectItem value="admin">Admin (Manage outreach campaigns)</SelectItem>
-                      <SelectItem value="teacher">Teacher (Submit outreach requests)</SelectItem>
+                      <SelectItem value="school_official">School/Departmental Official (Request outreach)</SelectItem>
                       <SelectItem value="learner">Learner (Request mentorship)</SelectItem>
                     </SelectContent>
                   </Select>
