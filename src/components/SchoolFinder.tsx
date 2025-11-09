@@ -30,8 +30,8 @@ const SchoolFinder = () => {
   const [schools, setSchools] = useState<School[]>([]);
 
   const handleSearch = async () => {
-    if (!province || !district) {
-      toast.error("Please enter both province and district");
+    if (!province) {
+      toast.error("Please select a province");
       return;
     }
 
@@ -41,9 +41,13 @@ const SchoolFinder = () => {
         .from('schools')
         .select('*')
         .eq('province', province)
-        .ilike('district', `%${district}%`)
         .not('longitude', 'is', null)
         .not('latitude', 'is', null);
+
+      // Add district filter if provided - use uppercase to match database
+      if (district.trim()) {
+        query = query.ilike('district', `%${district.toUpperCase()}%`);
+      }
 
       // Add quintile filter if not "all"
       if (quintile !== "all") {
@@ -52,13 +56,18 @@ const SchoolFinder = () => {
 
       const { data, error } = await query.limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Query returned:', data?.length, 'schools');
 
       if (data && data.length > 0) {
         setSchools(data);
         toast.success(`Found ${data.length} schools`);
       } else {
-        toast.info("No schools found for this search");
+        toast.info("No schools found for this search. Try adjusting your filters.");
         setSchools([]);
       }
     } catch (error: any) {
@@ -116,13 +125,16 @@ const SchoolFinder = () => {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
-                  District
+                  District (Optional)
                 </label>
                 <Input
-                  placeholder="e.g., Ekurhuleni, Cape Town"
+                  placeholder="e.g., Fezile Dabi, Motheo (leave empty for all districts)"
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tip: District names are case-insensitive
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">
