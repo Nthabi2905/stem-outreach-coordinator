@@ -52,8 +52,11 @@ serve(async (req) => {
       throw new Error("Lovable AI API key is not configured");
     }
 
-    // Filter schools by language if specified
-    let filteredSchools = schools;
+    // Note: Language filtering is disabled because the school data doesn't include language_of_instruction
+    // In the future, if this field is added to the database, uncomment the filtering logic below
+    const filteredSchools = schools;
+    
+    /* Language filtering (disabled - field not in database)
     if (languagePreference === 'english') {
       filteredSchools = schools.filter((s: any) => {
         const lang = (s.language_of_instruction || '').toLowerCase();
@@ -65,8 +68,10 @@ serve(async (req) => {
         return lang.includes('afrikaans') || lang.includes('afr');
       });
     }
+    */
 
     if (filteredSchools.length === 0) {
+      console.log("No schools after filtering");
       return new Response(
         JSON.stringify({ analyzedSchools: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
