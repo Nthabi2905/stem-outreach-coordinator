@@ -443,7 +443,9 @@ export const OutreachCampaignWizard = () => {
       }
     } catch (error: any) {
       console.error("[DEBUG] Error generating letters:", error);
-      toast.error(getPublicErrorMessage(error));
+      console.error("[DEBUG] Error message:", error?.message);
+      console.error("[DEBUG] Error details:", JSON.stringify(error, null, 2));
+      toast.error(error?.message || getPublicErrorMessage(error));
     } finally {
       setLoading(false);
       setLetterProgress({ current: 0, total: 0 });
