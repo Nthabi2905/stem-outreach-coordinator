@@ -38,6 +38,7 @@ export const OutreachCampaignWizard = () => {
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [schoolType, setSchoolType] = useState<"primary" | "high" | "combined">("primary");
+  const [languagePreference, setLanguagePreference] = useState<"any" | "english" | "afrikaans">("any");
   const [recommendations, setRecommendations] = useState<SchoolRecommendation[]>([]);
   const [selectedSchools, setSelectedSchools] = useState<number[]>([]);
   const [visitDetails, setVisitDetails] = useState<VisitDetails>({
@@ -60,7 +61,7 @@ export const OutreachCampaignWizard = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-school-recommendations", {
-        body: { province, district, schoolType },
+        body: { province, district, schoolType, languagePreference },
       });
 
       if (error) throw error;
@@ -80,6 +81,26 @@ export const OutreachCampaignWizard = () => {
     setSelectedSchools((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
+  };
+
+  const handleGenerateMoreSchools = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-school-recommendations", {
+        body: { province, district, schoolType, languagePreference },
+      });
+
+      if (error) throw error;
+
+      // Add new schools to existing recommendations
+      setRecommendations((prev) => [...prev, ...data.schools]);
+      toast.success(`${data.schools.length} more schools generated!`);
+    } catch (error: any) {
+      console.error("[DEBUG] Error generating more schools:", error);
+      toast.error(getPublicErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAcceptSchools = async () => {
@@ -252,6 +273,20 @@ export const OutreachCampaignWizard = () => {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="language">Language of Instruction</Label>
+              <Select value={languagePreference} onValueChange={(val: any) => setLanguagePreference(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any Language</SelectItem>
+                  <SelectItem value="english">English Medium</SelectItem>
+                  <SelectItem value="afrikaans">Afrikaans Medium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button onClick={handleGenerateRecommendations} disabled={loading} className="w-full">
               {loading ? (
                 <>
@@ -341,6 +376,16 @@ export const OutreachCampaignWizard = () => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>
               Back
+            </Button>
+            <Button variant="outline" onClick={handleGenerateMoreSchools} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Generate 10 More Schools"
+              )}
             </Button>
             <Button onClick={handleAcceptSchools} disabled={loading || selectedSchools.length === 0} className="flex-1">
               {loading ? (

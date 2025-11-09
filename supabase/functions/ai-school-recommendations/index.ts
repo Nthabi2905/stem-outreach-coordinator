@@ -51,12 +51,13 @@ serve(async (req) => {
         .regex(/^[a-zA-Z\s-]+$/, "District can only contain letters, spaces, and hyphens"),
       schoolType: z.enum(['primary', 'high', 'combined'], {
         errorMap: () => ({ message: "School type must be 'primary', 'high', or 'combined'" })
-      })
+      }),
+      languagePreference: z.enum(['any', 'english', 'afrikaans']).optional().default('any')
     });
 
     const body = await req.json();
     const validated = inputSchema.parse(body);
-    const { province, district, schoolType } = validated;
+    const { province, district, schoolType, languagePreference } = validated;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -95,8 +96,14 @@ Return EXACTLY 10 school recommendations as a JSON array with this structure:
                          schoolType === 'high' ? 'high schools (grades 8-12)' : 
                          'combined schools (grades R-12)';
     
+    const languageFilter = languagePreference === 'english' 
+      ? ' All schools MUST have English as their primary or sole language of instruction.' 
+      : languagePreference === 'afrikaans' 
+        ? ' All schools MUST have Afrikaans as their primary or sole language of instruction.' 
+        : '';
+    
     const userPrompt = `Generate 10 realistic ${schoolTypeText} recommendations for STEM outreach in ${district} district, ${province} province. 
-Use real South African township and suburb names from this region. Focus on underserved communities. 
+Use real South African township and suburb names from this region. Focus on underserved communities.${languageFilter}
 Include realistic enrollment numbers (learners), number of educators, and language of instruction for each school.`;
 
     console.log("Calling Lovable AI for school recommendations...");
