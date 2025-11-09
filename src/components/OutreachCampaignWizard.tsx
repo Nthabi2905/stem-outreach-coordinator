@@ -64,11 +64,11 @@ export const OutreachCampaignWizard = () => {
       // Build school type filter
       let phaseFilter = '';
       if (schoolType === 'primary') {
-        phaseFilter = 'Primary';
+        phaseFilter = 'PRIMARY SCHOOL';
       } else if (schoolType === 'high') {
-        phaseFilter = 'Secondary';
+        phaseFilter = 'SECONDARY SCHOOL';
       } else {
-        phaseFilter = 'Combined';
+        phaseFilter = 'COMBINED SCHOOL';
       }
 
       // Query schools from database
@@ -82,7 +82,7 @@ export const OutreachCampaignWizard = () => {
         .limit(20);
 
       if (schoolType !== 'combined') {
-        query = query.ilike('phase_ped', `%${phaseFilter}%`);
+        query = query.eq('phase_ped', phaseFilter);
       }
 
       const { data: schools, error: schoolsError } = await query;
