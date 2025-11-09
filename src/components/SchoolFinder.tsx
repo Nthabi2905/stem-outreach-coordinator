@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, MapPin, Users, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ interface School {
 const SchoolFinder = () => {
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
+  const [quintile, setQuintile] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
 
@@ -35,14 +37,20 @@ const SchoolFinder = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('schools')
         .select('*')
         .ilike('province', `%${province}%`)
         .ilike('district', `%${district}%`)
         .not('longitude', 'is', null)
-        .not('latitude', 'is', null)
-        .limit(50);
+        .not('latitude', 'is', null);
+
+      // Add quintile filter if not "all"
+      if (quintile !== "all") {
+        query = query.eq('quintile', quintile);
+      }
+
+      const { data, error } = await query.limit(50);
 
       if (error) throw error;
 
@@ -105,7 +113,25 @@ const SchoolFinder = () => {
                   onChange={(e) => setDistrict(e.target.value)}
                 />
               </div>
-              <Button 
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  Quintile (Optional)
+                </label>
+                <Select value={quintile} onValueChange={setQuintile}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select quintile" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="all">All Quintiles</SelectItem>
+                    <SelectItem value="1">Quintile 1 (Most disadvantaged)</SelectItem>
+                    <SelectItem value="2">Quintile 2</SelectItem>
+                    <SelectItem value="3">Quintile 3</SelectItem>
+                    <SelectItem value="4">Quintile 4</SelectItem>
+                    <SelectItem value="5">Quintile 5 (Least disadvantaged)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
                 onClick={handleSearch} 
                 className="w-full"
                 disabled={isLoading}
