@@ -363,6 +363,7 @@ export const OutreachCampaignWizard = () => {
             );
 
             if (letterError) {
+              console.error("[LETTER GENERATION ERROR]:", letterError);
               // Check if it's a rate limit error
               if (letterError.message?.includes("429") || letterError.message?.includes("Rate limit")) {
                 if (attempt < maxRetries - 1) {
@@ -374,6 +375,11 @@ export const OutreachCampaignWizard = () => {
                 }
               }
               throw letterError;
+            }
+            
+            if (!letterData || !letterData.letter) {
+              console.error("[NO LETTER DATA]:", letterData);
+              throw new Error("No letter generated from AI");
             }
 
             // Success - store the generated letter (don't mark as sent yet)

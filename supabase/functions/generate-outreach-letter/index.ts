@@ -154,9 +154,16 @@ Format the letter professionally with proper salutations, body paragraphs, and c
   } catch (error) {
     console.error("[INTERNAL] Error in generate-outreach-letter:", error);
     
-    // Return generic error message to client
+    // Log detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[ERROR DETAILS]:", errorMessage);
+    
+    // Return more informative error message
     return new Response(
-      JSON.stringify({ error: "Failed to generate letter. Please try again." }),
+      JSON.stringify({ 
+        error: "Failed to generate letter. Please try again.",
+        details: errorMessage 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
