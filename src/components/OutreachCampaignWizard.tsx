@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, MapPin, School, FileText, CheckCircle, Clock } from "lucide-react";
+import { getPublicErrorMessage } from "@/utils/errorMapping";
 
 interface SchoolRecommendation {
   name: string;
@@ -68,8 +69,8 @@ export const OutreachCampaignWizard = () => {
       setStep(2);
       toast.success("Schools generated successfully!");
     } catch (error: any) {
-      console.error("Error generating recommendations:", error);
-      toast.error(error.message || "Failed to generate recommendations");
+      console.error("[DEBUG] Error generating recommendations:", error);
+      toast.error(getPublicErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -136,8 +137,8 @@ export const OutreachCampaignWizard = () => {
       setStep(3);
       toast.success("Schools accepted! Now enter visit details.");
     } catch (error: any) {
-      console.error("Error accepting schools:", error);
-      toast.error(error.message || "Failed to accept schools");
+      console.error("[DEBUG] Error accepting schools:", error);
+      toast.error(getPublicErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -195,8 +196,8 @@ export const OutreachCampaignWizard = () => {
       setStep(4);
       toast.success("Letters generated and sent!");
     } catch (error: any) {
-      console.error("Error generating letters:", error);
-      toast.error(error.message || "Failed to generate letters");
+      console.error("[DEBUG] Error generating letters:", error);
+      toast.error(getPublicErrorMessage(error));
     } finally {
       setLoading(false);
     }

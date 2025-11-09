@@ -145,9 +145,23 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Import error:', error)
+    console.error('[INTERNAL] Import error:', error)
+    
+    // Return user-friendly error message
+    let publicMessage = 'Failed to import schools. Please try again.';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid school data')) {
+        publicMessage = 'The school data format is invalid. Please check your file.';
+      } else if (error.message.includes('organization')) {
+        publicMessage = 'Organization access required. Please contact your administrator.';
+      } else if (error.message.includes('Unauthorized') || error.message.includes('permissions')) {
+        publicMessage = 'You do not have permission to import schools.';
+      }
+    }
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: publicMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

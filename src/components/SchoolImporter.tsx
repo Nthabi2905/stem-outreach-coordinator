@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import * as XLSX from 'xlsx';
 import { parseSchoolRow } from "@/utils/parseSchoolData";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicErrorMessage } from "@/utils/errorMapping";
 
 const SchoolImporter = () => {
   const [isImporting, setIsImporting] = useState(false);
@@ -51,8 +52,8 @@ const SchoolImporter = () => {
 
       toast.success(`Successfully imported ${totalImported} schools total!`);
     } catch (error: any) {
-      console.error('Import error:', error);
-      toast.error(error.message || "Failed to import schools");
+      console.error('[DEBUG] Import error:', error);
+      toast.error(getPublicErrorMessage(error));
     } finally {
       setIsImporting(false);
       if (event.target) event.target.value = '';

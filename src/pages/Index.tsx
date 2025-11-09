@@ -44,20 +44,18 @@ const Index = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+        // Use RPC function instead of direct table query for better security
+        const { data, error } = await supabase.rpc('is_current_user_admin');
 
         if (error) {
           console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data === true);
         }
-
-        setIsAdmin(!!data);
       } catch (error) {
         console.error('Error checking admin status:', error);
+        setIsAdmin(false);
       } finally {
         setIsLoading(false);
       }

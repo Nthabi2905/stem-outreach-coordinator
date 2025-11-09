@@ -141,10 +141,11 @@ Format the letter professionally with proper salutations, body paragraphs, and c
     );
 
   } catch (error) {
-    console.error("Error in generate-outreach-letter:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    console.error("[INTERNAL] Error in generate-outreach-letter:", error);
+    
+    // Return generic error message to client
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: "Failed to generate letter. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
