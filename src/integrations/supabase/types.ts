@@ -221,6 +221,90 @@ export type Database = {
         }
         Relationships: []
       }
+      questionnaire_responses: {
+        Row: {
+          additional_info: string | null
+          capacity_per_session: number | null
+          company_type: string | null
+          contact_phone: string | null
+          created_at: string
+          geographic_coverage: string[] | null
+          grade_levels: string[] | null
+          id: string
+          organization_name: string
+          preferred_contact_method: string | null
+          preferred_topics: string[] | null
+          questionnaire_type: Database["public"]["Enums"]["questionnaire_type"]
+          resources_available: string | null
+          resources_needed: string | null
+          respondent_email: string
+          respondent_name: string
+          school_district: string | null
+          school_province: string | null
+          school_type: string | null
+          services_offered: string[] | null
+          status: string
+          student_count: number | null
+          subjects_interested: string[] | null
+          topics_can_cover: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          additional_info?: string | null
+          capacity_per_session?: number | null
+          company_type?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          geographic_coverage?: string[] | null
+          grade_levels?: string[] | null
+          id?: string
+          organization_name: string
+          preferred_contact_method?: string | null
+          preferred_topics?: string[] | null
+          questionnaire_type: Database["public"]["Enums"]["questionnaire_type"]
+          resources_available?: string | null
+          resources_needed?: string | null
+          respondent_email: string
+          respondent_name: string
+          school_district?: string | null
+          school_province?: string | null
+          school_type?: string | null
+          services_offered?: string[] | null
+          status?: string
+          student_count?: number | null
+          subjects_interested?: string[] | null
+          topics_can_cover?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          additional_info?: string | null
+          capacity_per_session?: number | null
+          company_type?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          geographic_coverage?: string[] | null
+          grade_levels?: string[] | null
+          id?: string
+          organization_name?: string
+          preferred_contact_method?: string | null
+          preferred_topics?: string[] | null
+          questionnaire_type?: Database["public"]["Enums"]["questionnaire_type"]
+          resources_available?: string | null
+          resources_needed?: string | null
+          respondent_email?: string
+          respondent_name?: string
+          school_district?: string | null
+          school_province?: string | null
+          school_type?: string | null
+          services_offered?: string[] | null
+          status?: string
+          student_count?: number | null
+          subjects_interested?: string[] | null
+          topics_can_cover?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       school_recommendations: {
         Row: {
           campaign_id: string
@@ -420,6 +504,7 @@ export type Database = {
     }
     Enums: {
       app_role: "organization" | "admin" | "school_official" | "learner"
+      questionnaire_type: "school_needs" | "company_offers"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -548,6 +633,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["organization", "admin", "school_official", "learner"],
+      questionnaire_type: ["school_needs", "company_offers"],
     },
   },
 } as const
