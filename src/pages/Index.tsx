@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
 import SchoolFinder from "@/components/SchoolFinder";
@@ -120,6 +120,12 @@ const Index = () => {
             )}
           </div>
           <div className="flex items-center gap-4">
+            {isAdmin && (
+              <Button onClick={() => navigate("/admin/responses")} variant="outline" size="sm">
+                <ClipboardList className="w-4 h-4 mr-2" />
+                View Responses
+              </Button>
+            )}
             <span className="text-sm text-muted-foreground">{user.email}</span>
             <Button onClick={handleSignOut} variant="outline" size="sm">
               <LogOut className="w-4 h-4 mr-2" />
