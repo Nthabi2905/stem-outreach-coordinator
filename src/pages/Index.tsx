@@ -11,6 +11,7 @@ import SchoolFinder from "@/components/SchoolFinder";
 import SchoolImporter from "@/components/SchoolImporter";
 import { OutreachCampaignWizard } from "@/components/OutreachCampaignWizard";
 import { OutreachRequestForm } from "@/components/OutreachRequestForm";
+import { AISchoolMatcher } from "@/components/AISchoolMatcher";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -142,12 +143,17 @@ const Index = () => {
           <>
             {/* Organizations and Admins - Full access to campaigns */}
             {(isAdmin || userRole === 'organization' || userRole === 'admin') && (
-              <Tabs defaultValue="campaign" className="mb-8">
-                <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
-                  <TabsTrigger value="campaign">Outreach Campaign</TabsTrigger>
-                  <TabsTrigger value="search">Search Schools</TabsTrigger>
-                  <TabsTrigger value="import">Import Data</TabsTrigger>
+              <Tabs defaultValue="ai-match" className="mb-8">
+                <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4">
+                  <TabsTrigger value="ai-match">AI Matcher</TabsTrigger>
+                  <TabsTrigger value="campaign">Campaign</TabsTrigger>
+                  <TabsTrigger value="search">Search</TabsTrigger>
+                  <TabsTrigger value="import">Import</TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="ai-match" className="mt-6">
+                  <AISchoolMatcher />
+                </TabsContent>
                 
                 <TabsContent value="campaign" className="mt-6">
                   <OutreachCampaignWizard />
