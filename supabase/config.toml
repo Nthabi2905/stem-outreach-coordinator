@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.ai-match-schools]
 verify_jwt = true
+
+[functions.find-underserved-schools]
+verify_jwt = true
