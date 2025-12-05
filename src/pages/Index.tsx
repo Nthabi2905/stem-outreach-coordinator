@@ -12,6 +12,7 @@ import SchoolImporter from "@/components/SchoolImporter";
 import { OutreachCampaignWizard } from "@/components/OutreachCampaignWizard";
 import { SchoolRequestForm } from "@/components/SchoolRequestForm";
 import { AISchoolMatcher } from "@/components/AISchoolMatcher";
+import { UnderservedSchoolFinder } from "@/components/UnderservedSchoolFinder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
@@ -156,13 +157,18 @@ const Index = () => {
           <>
             {/* Organizations and Admins - Full access to campaigns */}
             {(isAdmin || userRole === 'organization' || userRole === 'admin') && (
-              <Tabs defaultValue="ai-match" className="mb-8">
-                <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-4">
+              <Tabs defaultValue="underserved" className="mb-8">
+                <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-5">
+                  <TabsTrigger value="underserved">Underserved</TabsTrigger>
                   <TabsTrigger value="ai-match">AI Matcher</TabsTrigger>
                   <TabsTrigger value="campaign">Campaign</TabsTrigger>
                   <TabsTrigger value="search">Search</TabsTrigger>
                   <TabsTrigger value="import">Import</TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="underserved" className="mt-6">
+                  <UnderservedSchoolFinder />
+                </TabsContent>
                 
                 <TabsContent value="ai-match" className="mt-6">
                   <AISchoolMatcher />
