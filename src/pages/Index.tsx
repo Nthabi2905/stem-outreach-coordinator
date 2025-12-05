@@ -1,4 +1,4 @@
-// School Outreach Platform - Index Page
+// EduReach AI - School Outreach Platform
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import Hero from "@/components/Hero";
 import SchoolFinder from "@/components/SchoolFinder";
 import SchoolImporter from "@/components/SchoolImporter";
 import { OutreachCampaignWizard } from "@/components/OutreachCampaignWizard";
-import { OutreachRequestForm } from "@/components/OutreachRequestForm";
+import { SchoolRequestForm } from "@/components/SchoolRequestForm";
 import { AISchoolMatcher } from "@/components/AISchoolMatcher";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -93,16 +93,29 @@ const Index = () => {
     return (
       <div className="min-h-screen">
         <Hero />
-        <section className="py-20 px-6">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Access School Database</h2>
-            <p className="text-muted-foreground mb-8">
-              Sign in to search schools and access features
-            </p>
-            <Button onClick={() => navigate("/auth")} size="lg">
-              Sign In / Sign Up
-            </Button>
-          </div>
+        <section className="py-12 px-6">
+          <Tabs defaultValue="request" className="max-w-4xl mx-auto">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+              <TabsTrigger value="request">Request Support</TabsTrigger>
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="request">
+              <SchoolRequestForm />
+            </TabsContent>
+            
+            <TabsContent value="login">
+              <div className="max-w-md mx-auto text-center bg-card border rounded-lg p-8">
+                <h2 className="text-2xl font-bold mb-4">Organisation Access</h2>
+                <p className="text-muted-foreground mb-6">
+                  Sign in to access the full platform: AI school matching, campaign planning, and impact reporting.
+                </p>
+                <Button onClick={() => navigate("/auth")} size="lg" className="w-full">
+                  Sign In / Sign Up
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </section>
       </div>
     );
@@ -178,7 +191,7 @@ const Index = () => {
                     Submit a request for STEM outreach programs at your school
                   </p>
                 </div>
-                <OutreachRequestForm />
+                <SchoolRequestForm />
               </div>
             )}
             

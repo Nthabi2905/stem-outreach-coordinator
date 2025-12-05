@@ -140,7 +140,7 @@ export type Database = {
           school_name: string
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
           workshop_topic: string | null
         }
         Insert: {
@@ -162,7 +162,7 @@ export type Database = {
           school_name: string
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           workshop_topic?: string | null
         }
         Update: {
@@ -184,7 +184,7 @@ export type Database = {
           school_name?: string
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           workshop_topic?: string | null
         }
         Relationships: [
