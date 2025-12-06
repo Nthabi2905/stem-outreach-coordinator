@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ClipboardList } from "lucide-react";
+import { ArrowLeft, ClipboardList, Users, Shield } from "lucide-react";
 import { QuestionnaireResponsesTable } from "@/components/QuestionnaireResponsesTable";
+import { UserRoleManagement } from "@/components/UserRoleManagement";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -72,8 +74,8 @@ const AdminDashboard = () => {
                 Back
               </Button>
               <div className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
-                <h1 className="text-2xl font-bold">Questionnaire Responses</h1>
+                <Shield className="h-5 w-5 text-primary" />
+                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
               </div>
             </div>
           </div>
@@ -81,16 +83,42 @@ const AdminDashboard = () => {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        <div className="bg-card border rounded-lg p-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Manage Survey Responses</h2>
-            <p className="text-muted-foreground">
-              View and manage questionnaire responses from schools and companies. Filter by type, status, and search to find specific responses.
-            </p>
-          </div>
+        <Tabs defaultValue="questionnaires" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="questionnaires" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Questionnaires
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="h-4 w-4" />
+              User Management
+            </TabsTrigger>
+          </TabsList>
 
-          <QuestionnaireResponsesTable />
-        </div>
+          <TabsContent value="questionnaires">
+            <div className="bg-card border rounded-lg p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">Manage Survey Responses</h2>
+                <p className="text-muted-foreground">
+                  View and manage questionnaire responses from schools and companies.
+                </p>
+              </div>
+              <QuestionnaireResponsesTable />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <div className="bg-card border rounded-lg p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">User Role Management</h2>
+                <p className="text-muted-foreground">
+                  Assign and manage roles for platform users. Promote users to organization or admin roles.
+                </p>
+              </div>
+              <UserRoleManagement />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
