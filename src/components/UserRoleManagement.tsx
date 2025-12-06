@@ -27,7 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, Shield, UserPlus, RefreshCw } from "lucide-react";
+import { Loader2, Search, Shield, RefreshCw, Building2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -38,6 +38,11 @@ interface UserWithRole {
   full_name: string | null;
   role: AppRole | null;
   created_at: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
 }
 
 const ROLE_LABELS: Record<AppRole, string> = {
@@ -56,21 +61,23 @@ const ROLE_COLORS: Record<AppRole, string> = {
 
 export function UserRoleManagement() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [newRole, setNewRole] = useState<AppRole | "">("");
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    fetchOrganizations();
   }, []);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch all profiles (admins can view all via RLS)
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, email, full_name, created_at")
@@ -78,14 +85,12 @@ export function UserRoleManagement() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch all user roles
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id, role");
 
       if (rolesError) throw rolesError;
 
-      // Combine profiles with roles
       const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
         const userRole = roles?.find((r) => r.user_id === profile.id);
         return {
@@ -106,19 +111,40 @@ export function UserRoleManagement() {
     }
   };
 
+  const fetchOrganizations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("organizations")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setOrganizations(data || []);
+    } catch (error: any) {
+      console.error("Error fetching organizations:", error);
+    }
+  };
+
   const handleRoleChange = (user: UserWithRole) => {
     setSelectedUser(user);
     setNewRole(user.role || "");
+    setSelectedOrgId("");
     setDialogOpen(true);
   };
 
   const confirmRoleChange = async () => {
     if (!selectedUser || !newRole) return;
 
+    // Require organization selection for organization role
+    if (newRole === "organization" && !selectedOrgId) {
+      toast.error("Please select an organization");
+      return;
+    }
+
     setIsUpdating(true);
     try {
+      // Update or insert role
       if (selectedUser.role) {
-        // Update existing role
         const { error } = await supabase
           .from("user_roles")
           .update({ role: newRole })
@@ -126,7 +152,6 @@ export function UserRoleManagement() {
 
         if (error) throw error;
       } else {
-        // Insert new role
         const { error } = await supabase
           .from("user_roles")
           .insert({ user_id: selectedUser.id, role: newRole });
@@ -134,7 +159,33 @@ export function UserRoleManagement() {
         if (error) throw error;
       }
 
-      toast.success(`Role updated to ${ROLE_LABELS[newRole as AppRole]}`);
+      // Add to organization if organization role selected
+      if (newRole === "organization" && selectedOrgId) {
+        // Check if already a member
+        const { data: existing } = await supabase
+          .from("organization_members")
+          .select("id")
+          .eq("user_id", selectedUser.id)
+          .eq("organization_id", selectedOrgId)
+          .single();
+
+        if (!existing) {
+          const { error: memberError } = await supabase
+            .from("organization_members")
+            .insert({
+              user_id: selectedUser.id,
+              organization_id: selectedOrgId,
+            });
+
+          if (memberError) throw memberError;
+        }
+
+        const orgName = organizations.find((o) => o.id === selectedOrgId)?.name;
+        toast.success(`Role updated and added to ${orgName}`);
+      } else {
+        toast.success(`Role updated to ${ROLE_LABELS[newRole as AppRole]}`);
+      }
+
       setDialogOpen(false);
       fetchUsers();
     } catch (error: any) {
@@ -252,7 +303,10 @@ export function UserRoleManagement() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">New Role</label>
-              <Select value={newRole} onValueChange={(val) => setNewRole(val as AppRole)}>
+              <Select value={newRole} onValueChange={(val) => {
+                setNewRole(val as AppRole);
+                if (val !== "organization") setSelectedOrgId("");
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
@@ -264,6 +318,36 @@ export function UserRoleManagement() {
                 </SelectContent>
               </Select>
             </div>
+
+            {newRole === "organization" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Assign to Organization
+                </label>
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No organizations available
+                      </SelectItem>
+                    ) : (
+                      organizations.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The user will be added as a member of this organization
+                </p>
+              </div>
+            )}
 
             {newRole === "admin" && (
               <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
@@ -280,7 +364,10 @@ export function UserRoleManagement() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmRoleChange} disabled={!newRole || isUpdating}>
+            <Button 
+              onClick={confirmRoleChange} 
+              disabled={!newRole || isUpdating || (newRole === "organization" && !selectedOrgId)}
+            >
               {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirm Change
             </Button>
