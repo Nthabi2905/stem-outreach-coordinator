@@ -19,8 +19,6 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"school_official" | "learner">("learner");
-  const [organizationName, setOrganizationName] = useState("");
-  const [organizationDescription, setOrganizationDescription] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
   useEffect(() => {
