@@ -18,7 +18,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"organization" | "admin" | "school_official" | "learner">("learner");
+  const [role, setRole] = useState<"school_official" | "learner">("learner");
   const [organizationName, setOrganizationName] = useState("");
   const [organizationDescription, setOrganizationDescription] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
@@ -68,21 +68,7 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate organization fields if role is organization
-    if (role === 'organization') {
-      if (!organizationName.trim()) {
-        toast.error("Organization name is required");
-        return;
-      }
-      if (organizationName.length > 100) {
-        toast.error("Organization name must be less than 100 characters");
-        return;
-      }
-      if (organizationDescription.length > 500) {
-        toast.error("Organization description must be less than 500 characters");
-        return;
-      }
-    }
+    // Role is now restricted to non-privileged roles only (server-side validation also enforced)
     
     // Validate password strength
     const validation = validatePassword(password);
@@ -95,16 +81,10 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const metadata: any = {
+      const metadata = {
         full_name: fullName,
-        role: role,
+        role: role, // Only non-privileged roles allowed (school_official, learner)
       };
-
-      // Add organization details for organization role
-      if (role === 'organization') {
-        metadata.organization_name = organizationName.trim();
-        metadata.organization_description = organizationDescription.trim();
-      }
 
       const { error } = await supabase.auth.signUp({
         email,
@@ -191,50 +171,19 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-role">I am a...</Label>
-                  <Select value={role} onValueChange={(value: any) => setRole(value)}>
+                  <Select value={role} onValueChange={(value: "school_official" | "learner") => setRole(value)}>
                     <SelectTrigger id="signup-role">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="organization">Organization (Create outreach campaigns)</SelectItem>
-                      <SelectItem value="admin">Admin (Manage outreach campaigns)</SelectItem>
                       <SelectItem value="school_official">School/Departmental Official (Request outreach)</SelectItem>
                       <SelectItem value="learner">Learner (Request mentorship)</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Organizations can contact us directly to set up admin accounts
+                  </p>
                 </div>
-                
-                {/* Organization-specific fields */}
-                {role === 'organization' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-org-name">Organization Name *</Label>
-                      <Input
-                        id="signup-org-name"
-                        type="text"
-                        placeholder="Your Organization Name"
-                        value={organizationName}
-                        onChange={(e) => setOrganizationName(e.target.value)}
-                        required
-                        maxLength={100}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-org-description">What does your organization do?</Label>
-                      <Input
-                        id="signup-org-description"
-                        type="text"
-                        placeholder="Brief description of your organization's mission and activities"
-                        value={organizationDescription}
-                        onChange={(e) => setOrganizationDescription(e.target.value)}
-                        maxLength={500}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Optional - Help schools understand your outreach goals
-                      </p>
-                    </div>
-                  </>
-                )}
                 
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
