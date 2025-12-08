@@ -48,10 +48,13 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
+      },
       backgroundImage: {
-        'gradient-cosmic': 'var(--gradient-cosmic)',
+        'gradient-primary': 'var(--gradient-primary)',
         'gradient-hero': 'var(--gradient-hero)',
-        'gradient-accent': 'var(--gradient-accent)',
+        'gradient-subtle': 'var(--gradient-subtle)',
       },
       boxShadow: {
         'sm': 'var(--shadow-sm)',
