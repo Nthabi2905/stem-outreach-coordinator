@@ -4,16 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { LogOut, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
-import SchoolFinder from "@/components/SchoolFinder";
-import SchoolImporter from "@/components/SchoolImporter";
-import { OutreachCampaignWizard } from "@/components/OutreachCampaignWizard";
 import { SchoolRequestForm } from "@/components/SchoolRequestForm";
-import { AISchoolMatcher } from "@/components/AISchoolMatcher";
-import { UnderservedSchoolFinder } from "@/components/UnderservedSchoolFinder";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminDashboardView } from "@/components/dashboards/AdminDashboardView";
+import { OrganizationDashboardView } from "@/components/dashboards/OrganizationDashboardView";
+import { SchoolOfficialDashboardView } from "@/components/dashboards/SchoolOfficialDashboardView";
+import { LearnerDashboardView } from "@/components/dashboards/LearnerDashboardView";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -21,6 +19,7 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -44,12 +43,17 @@ const Index = () => {
       if (!user) {
         setIsAdmin(false);
         setUserRole(null);
+        setUserName("");
         setIsLoading(false);
         return;
       }
 
       try {
-        // Check if user is admin or organization
+        // Get user name from metadata
+        const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+        setUserName(fullName);
+
+        // Check if user is admin
         const { data: adminData, error: adminError } = await supabase.rpc('is_current_user_admin');
 
         if (adminError) {
@@ -84,12 +88,19 @@ const Index = () => {
     checkUserRole();
   }, [user]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("Signed out successfully");
-    navigate("/auth");
-  };
+  // Show loading state
+  if (isLoading && user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
+  // Not logged in - show public view
   if (!user) {
     return (
       <div className="min-h-screen">
@@ -122,115 +133,71 @@ const Index = () => {
     );
   }
 
+  // Admin role
+  if (isAdmin || userRole === 'admin') {
+    return (
+      <AdminDashboardView 
+        userEmail={user.email || ""} 
+        userName={userName}
+      />
+    );
+  }
+
+  // Organization role
+  if (userRole === 'organization') {
+    return (
+      <OrganizationDashboardView 
+        userEmail={user.email || ""} 
+        userName={userName}
+        userId={user.id}
+      />
+    );
+  }
+
+  // School official role
+  if (userRole === 'school_official') {
+    return (
+      <SchoolOfficialDashboardView 
+        userEmail={user.email || ""} 
+        userName={userName}
+        userId={user.id}
+      />
+    );
+  }
+
+  // Learner role
+  if (userRole === 'learner') {
+    return (
+      <LearnerDashboardView 
+        userEmail={user.email || ""} 
+        userName={userName}
+      />
+    );
+  }
+
+  // Fallback for users without a role
   return (
-    <div className="min-h-screen">
-      <div className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold">School Outreach Platform</h1>
-            {userRole && (
-              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded capitalize">
-                {userRole}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            {isAdmin && (
-              <Button onClick={() => navigate("/admin/responses")} variant="outline" size="sm">
-                <ClipboardList className="w-4 h-4 mr-2" />
-                View Responses
-              </Button>
-            )}
-            <span className="text-sm text-muted-foreground">{user.email}</span>
-            <Button onClick={handleSignOut} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-card border rounded-lg p-8 text-center">
+            <h2 className="text-2xl font-bold mb-4">Welcome, {userName}!</h2>
+            <p className="text-muted-foreground mb-6">
+              Your account has been created. Please contact an administrator to assign your role.
+            </p>
+            <Button 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                toast.success("Signed out successfully");
+                navigate("/auth");
+              }} 
+              variant="outline"
+            >
               Sign Out
             </Button>
           </div>
         </div>
       </div>
-
-      <Hero />
-
-      <section className="container mx-auto px-4 py-12">
-        {!isLoading && (
-          <>
-            {/* Organizations and Admins - Full access to campaigns */}
-            {(isAdmin || userRole === 'organization' || userRole === 'admin') && (
-              <Tabs defaultValue="underserved" className="mb-8">
-                <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-5">
-                  <TabsTrigger value="underserved">Underserved</TabsTrigger>
-                  <TabsTrigger value="ai-match">AI Matcher</TabsTrigger>
-                  <TabsTrigger value="campaign">Campaign</TabsTrigger>
-                  <TabsTrigger value="search">Search</TabsTrigger>
-                  <TabsTrigger value="import">Import</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="underserved" className="mt-6">
-                  <UnderservedSchoolFinder />
-                </TabsContent>
-                
-                <TabsContent value="ai-match" className="mt-6">
-                  <AISchoolMatcher />
-                </TabsContent>
-                
-                <TabsContent value="campaign" className="mt-6">
-                  <OutreachCampaignWizard />
-                </TabsContent>
-                
-                <TabsContent value="search" className="mt-6">
-                  <SchoolFinder />
-                </TabsContent>
-                
-                <TabsContent value="import" className="mt-6">
-                  <SchoolImporter />
-                </TabsContent>
-              </Tabs>
-            )}
-            
-            {/* School Officials - Request outreach form */}
-            {userRole === 'school_official' && !isAdmin && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-3xl font-bold mb-2">School Outreach Portal</h2>
-                  <p className="text-muted-foreground">
-                    Submit a request for STEM outreach programs at your school
-                  </p>
-                </div>
-                <SchoolRequestForm />
-              </div>
-            )}
-            
-            {/* Learners - Mentorship request form (placeholder) */}
-            {userRole === 'learner' && !isAdmin && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-card border rounded-lg p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Learner Portal</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Request mentorship and guidance from STEM professionals
-                  </p>
-                  <Button size="lg" disabled>
-                    Request Mentor (Coming Soon)
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {/* Fallback for users without a role */}
-            {!userRole && !isAdmin && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-card border rounded-lg p-8 text-center">
-                  <h2 className="text-2xl font-bold mb-4">Welcome!</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Please contact an administrator to assign your role
-                  </p>
-                  <SchoolFinder />
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </section>
     </div>
   );
 };
