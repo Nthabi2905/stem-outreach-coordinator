@@ -10,9 +10,9 @@ import {
   CalendarCheck,
   CheckCheck,
   Lightbulb,
-  Shield,
   GraduationCap,
-  Clock
+  Clock,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -141,7 +141,7 @@ export const OrganizationDashboardView = ({ userEmail, userName, userId }: Organ
             <p className="text-sm text-muted-foreground">Use AI to generate batches of underserved schools</p>
           </div>
           <Button 
-            onClick={() => setShowPlanningTool(true)}
+            onClick={() => navigate("/planning")}
             className="bg-primary text-primary-foreground"
           >
             Start
@@ -191,10 +191,10 @@ export const OrganizationDashboardView = ({ userEmail, userName, userId }: Organ
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6">
         <Button 
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/planning")}
           className="bg-primary text-primary-foreground rounded-full px-6 py-6 shadow-lg shadow-primary/30"
         >
-          <Shield className="h-5 w-5 mr-2" />
+          <Sparkles className="h-5 w-5 mr-2" />
           Plan Outreach
         </Button>
       </div>
