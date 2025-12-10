@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const DEMO_USERS = [
   { email: "admin@stemreach.org", password: "demo123456", role: "admin", fullName: "Demo Admin" },
+  { email: "admin@edureach.ai", password: "EduReach2024!", role: "admin", fullName: "EduReach AI Team" },
   { email: "org@stemreach.org", password: "demo123456", role: "organization", fullName: "Demo Organization" },
   { email: "school@stemreach.org", password: "demo123456", role: "school_official", fullName: "Demo School Official" },
   { email: "learner@stemreach.org", password: "demo123456", role: "learner", fullName: "Demo Learner" },
