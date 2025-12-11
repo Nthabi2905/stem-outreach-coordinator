@@ -1,0 +1,590 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Building2, 
+  Plus, 
+  Users, 
+  Search, 
+  RefreshCw, 
+  UserPlus,
+  Trash2,
+  Eye
+} from "lucide-react";
+
+interface Organization {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  member_count?: number;
+}
+
+interface OrganizationMember {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  created_at: string;
+  profile?: {
+    email: string;
+    full_name: string | null;
+  };
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+}
+
+export function OrganizationManagement() {
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Create organization dialog
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [newOrgDescription, setNewOrgDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  
+  // View members dialog
+  const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+  const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  
+  // Add member dialog
+  const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  
+  // Delete confirmation
+  const [memberToDelete, setMemberToDelete] = useState<OrganizationMember | null>(null);
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
+
+  const fetchOrganizations = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch organizations
+      const { data: orgsData, error: orgsError } = await supabase
+        .from("organizations")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (orgsError) throw orgsError;
+
+      // Fetch member counts
+      const { data: memberCounts, error: countError } = await supabase
+        .from("organization_members")
+        .select("organization_id");
+
+      if (countError) throw countError;
+
+      // Count members per organization
+      const countMap = memberCounts?.reduce((acc, member) => {
+        acc[member.organization_id] = (acc[member.organization_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const orgsWithCounts = (orgsData || []).map(org => ({
+        ...org,
+        member_count: countMap[org.id] || 0
+      }));
+
+      setOrganizations(orgsWithCounts);
+    } catch (error: any) {
+      console.error("Error fetching organizations:", error);
+      toast.error("Failed to load organizations");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateOrganization = async () => {
+    if (!newOrgName.trim()) {
+      toast.error("Organization name is required");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .insert({
+          name: newOrgName.trim(),
+          description: newOrgDescription.trim() || null
+        });
+
+      if (error) throw error;
+
+      toast.success("Organization created successfully");
+      setIsCreateDialogOpen(false);
+      setNewOrgName("");
+      setNewOrgDescription("");
+      fetchOrganizations();
+    } catch (error: any) {
+      console.error("Error creating organization:", error);
+      toast.error("Failed to create organization");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const fetchMembers = async (orgId: string) => {
+    setIsLoadingMembers(true);
+    try {
+      const { data: membersData, error: membersError } = await supabase
+        .from("organization_members")
+        .select("*")
+        .eq("organization_id", orgId);
+
+      if (membersError) throw membersError;
+
+      // Fetch profiles for members
+      if (membersData && membersData.length > 0) {
+        const userIds = membersData.map(m => m.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, email, full_name")
+          .in("id", userIds);
+
+        if (profilesError) throw profilesError;
+
+        const profileMap = (profilesData || []).reduce((acc, profile) => {
+          acc[profile.id] = profile;
+          return acc;
+        }, {} as Record<string, UserProfile>);
+
+        const membersWithProfiles = membersData.map(member => ({
+          ...member,
+          profile: profileMap[member.user_id]
+        }));
+
+        setMembers(membersWithProfiles);
+      } else {
+        setMembers([]);
+      }
+    } catch (error: any) {
+      console.error("Error fetching members:", error);
+      toast.error("Failed to load organization members");
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  };
+
+  const handleViewMembers = (org: Organization) => {
+    setSelectedOrg(org);
+    setIsMembersDialogOpen(true);
+    fetchMembers(org.id);
+  };
+
+  const fetchAvailableUsers = async (orgId: string) => {
+    try {
+      // Get all profiles
+      const { data: allProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, full_name");
+
+      if (profilesError) throw profilesError;
+
+      // Get existing members
+      const { data: existingMembers, error: membersError } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", orgId);
+
+      if (membersError) throw membersError;
+
+      const existingUserIds = new Set((existingMembers || []).map(m => m.user_id));
+      const available = (allProfiles || []).filter(p => !existingUserIds.has(p.id));
+      
+      setAvailableUsers(available);
+    } catch (error: any) {
+      console.error("Error fetching available users:", error);
+      toast.error("Failed to load available users");
+    }
+  };
+
+  const handleOpenAddMember = () => {
+    if (selectedOrg) {
+      setIsAddMemberDialogOpen(true);
+      fetchAvailableUsers(selectedOrg.id);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!selectedUserId || !selectedOrg) {
+      toast.error("Please select a user");
+      return;
+    }
+
+    setIsAddingMember(true);
+    try {
+      const { error } = await supabase
+        .from("organization_members")
+        .insert({
+          organization_id: selectedOrg.id,
+          user_id: selectedUserId
+        });
+
+      if (error) throw error;
+
+      toast.success("Member added successfully");
+      setIsAddMemberDialogOpen(false);
+      setSelectedUserId("");
+      setUserSearchQuery("");
+      fetchMembers(selectedOrg.id);
+      fetchOrganizations(); // Update member count
+    } catch (error: any) {
+      console.error("Error adding member:", error);
+      toast.error("Failed to add member");
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!memberToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("organization_members")
+        .delete()
+        .eq("id", memberToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Member removed successfully");
+      setMemberToDelete(null);
+      if (selectedOrg) {
+        fetchMembers(selectedOrg.id);
+        fetchOrganizations(); // Update member count
+      }
+    } catch (error: any) {
+      console.error("Error removing member:", error);
+      toast.error("Failed to remove member");
+    }
+  };
+
+  const filteredOrganizations = organizations.filter(org =>
+    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (org.description && org.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredAvailableUsers = availableUsers.filter(user =>
+    user.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+    (user.full_name && user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()))
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search organizations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={fetchOrganizations}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Organization
+          </Button>
+        </div>
+      </div>
+
+      {/* Organizations Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Organization</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Members</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredOrganizations.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? "No organizations match your search" : "No organizations yet"}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredOrganizations.map((org) => (
+                <TableRow key={org.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{org.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate">
+                    {org.description || <span className="text-muted-foreground italic">No description</span>}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="gap-1">
+                      <Users className="h-3 w-3" />
+                      {org.member_count}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(org.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleViewMembers(org)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Manage Members
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Create Organization Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Organization</DialogTitle>
+            <DialogDescription>
+              Add a new organization to the platform.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Name *</label>
+              <Input
+                placeholder="Enter organization name"
+                value={newOrgName}
+                onChange={(e) => setNewOrgName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Enter organization description"
+                value={newOrgDescription}
+                onChange={(e) => setNewOrgDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateOrganization} disabled={isCreating}>
+              {isCreating ? "Creating..." : "Create Organization"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View/Manage Members Dialog */}
+      <Dialog open={isMembersDialogOpen} onOpenChange={setIsMembersDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {selectedOrg?.name} - Members
+            </DialogTitle>
+            <DialogDescription>
+              Manage organization members.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button size="sm" onClick={handleOpenAddMember}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+            </div>
+            
+            {isLoadingMembers ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : members.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No members in this organization yet.
+              </div>
+            ) : (
+              <div className="rounded-md border max-h-[300px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">
+                              {member.profile?.full_name || "Unknown"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {member.profile?.email || member.user_id}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(member.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setMemberToDelete(member)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Member to {selectedOrg?.name}</DialogTitle>
+            <DialogDescription>
+              Select a user to add to this organization.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="max-h-[200px] overflow-auto border rounded-md">
+              {filteredAvailableUsers.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  {userSearchQuery ? "No users match your search" : "No available users"}
+                </div>
+              ) : (
+                filteredAvailableUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className={`p-3 cursor-pointer hover:bg-muted/50 border-b last:border-b-0 ${
+                      selectedUserId === user.id ? "bg-muted" : ""
+                    }`}
+                    onClick={() => setSelectedUserId(user.id)}
+                  >
+                    <p className="font-medium">{user.full_name || "Unknown"}</p>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddMemberDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddMember} disabled={!selectedUserId || isAddingMember}>
+              {isAddingMember ? "Adding..." : "Add Member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Member Confirmation */}
+      <AlertDialog open={!!memberToDelete} onOpenChange={() => setMemberToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{" "}
+              <strong>{memberToDelete?.profile?.full_name || memberToDelete?.profile?.email}</strong>{" "}
+              from this organization? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveMember} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

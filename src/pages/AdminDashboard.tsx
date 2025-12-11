@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ClipboardList, Users, Shield } from "lucide-react";
+import { ArrowLeft, ClipboardList, Users, Shield, Building2 } from "lucide-react";
 import { QuestionnaireResponsesTable } from "@/components/QuestionnaireResponsesTable";
 import { UserRoleManagement } from "@/components/UserRoleManagement";
+import { OrganizationManagement } from "@/components/OrganizationManagement";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -93,6 +94,10 @@ const AdminDashboard = () => {
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
+            <TabsTrigger value="organizations" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              Organizations
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="questionnaires">
@@ -116,6 +121,18 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <UserRoleManagement />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="organizations">
+            <div className="bg-card border rounded-lg p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">Organization Management</h2>
+                <p className="text-muted-foreground">
+                  Create and manage organizations. Add or remove members from each organization.
+                </p>
+              </div>
+              <OrganizationManagement />
             </div>
           </TabsContent>
         </Tabs>
