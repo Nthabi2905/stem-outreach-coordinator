@@ -39,7 +39,8 @@ import {
   RefreshCw, 
   UserPlus,
   Trash2,
-  Eye
+  Eye,
+  Pencil
 } from "lucide-react";
 
 interface Organization {
@@ -90,6 +91,13 @@ export function OrganizationManagement() {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [isAddingMember, setIsAddingMember] = useState(false);
+  
+  // Edit organization dialog
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
+  const [editOrgName, setEditOrgName] = useState("");
+  const [editOrgDescription, setEditOrgDescription] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Delete confirmation
   const [memberToDelete, setMemberToDelete] = useState<OrganizationMember | null>(null);
@@ -163,6 +171,45 @@ export function OrganizationManagement() {
       toast.error("Failed to create organization");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleEditOrganization = (org: Organization) => {
+    setEditingOrg(org);
+    setEditOrgName(org.name);
+    setEditOrgDescription(org.description || "");
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateOrganization = async () => {
+    if (!editingOrg) return;
+    
+    if (!editOrgName.trim()) {
+      toast.error("Organization name is required");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({
+          name: editOrgName.trim(),
+          description: editOrgDescription.trim() || null
+        })
+        .eq("id", editingOrg.id);
+
+      if (error) throw error;
+
+      toast.success("Organization updated successfully");
+      setIsEditDialogOpen(false);
+      setEditingOrg(null);
+      fetchOrganizations();
+    } catch (error: any) {
+      console.error("Error updating organization:", error);
+      toast.error("Failed to update organization");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -386,14 +433,23 @@ export function OrganizationManagement() {
                     {new Date(org.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewMembers(org)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Manage Members
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditOrganization(org)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewMembers(org)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Members
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -436,6 +492,45 @@ export function OrganizationManagement() {
             </Button>
             <Button onClick={handleCreateOrganization} disabled={isCreating}>
               {isCreating ? "Creating..." : "Create Organization"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Organization Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Organization</DialogTitle>
+            <DialogDescription>
+              Update organization details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Name *</label>
+              <Input
+                placeholder="Enter organization name"
+                value={editOrgName}
+                onChange={(e) => setEditOrgName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Enter organization description"
+                value={editOrgDescription}
+                onChange={(e) => setEditOrgDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateOrganization} disabled={isUpdating}>
+              {isUpdating ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
