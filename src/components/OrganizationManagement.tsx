@@ -40,7 +40,9 @@ import {
   UserPlus,
   Trash2,
   Eye,
-  Pencil
+  Pencil,
+  Upload,
+  FileSpreadsheet
 } from "lucide-react";
 
 interface Organization {
@@ -99,6 +101,16 @@ export function OrganizationManagement() {
   const [editOrgDescription, setEditOrgDescription] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   
+  // Bulk import
+  const [isBulkImportDialogOpen, setIsBulkImportDialogOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResults, setImportResults] = useState<{
+    success: string[];
+    notFound: string[];
+    alreadyMember: string[];
+  } | null>(null);
+
   // Delete confirmation
   const [memberToDelete, setMemberToDelete] = useState<OrganizationMember | null>(null);
 
@@ -349,6 +361,91 @@ export function OrganizationManagement() {
     }
   };
 
+  const parseCSV = (text: string): string[] => {
+    const lines = text.split(/\r?\n/).filter(line => line.trim());
+    const emails: string[] = [];
+    
+    for (const line of lines) {
+      const cells = line.split(/[,;\t]/).map(cell => cell.trim().replace(/^["']|["']$/g, ''));
+      for (const cell of cells) {
+        if (cell && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cell)) {
+          emails.push(cell.toLowerCase());
+        }
+      }
+    }
+    
+    return [...new Set(emails)];
+  };
+
+  const handleBulkImport = async () => {
+    if (!csvFile || !selectedOrg) return;
+
+    setIsImporting(true);
+    setImportResults(null);
+
+    try {
+      const text = await csvFile.text();
+      const emails = parseCSV(text);
+
+      if (emails.length === 0) {
+        toast.error("No valid email addresses found in the CSV file");
+        setIsImporting(false);
+        return;
+      }
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .in("email", emails);
+
+      if (profilesError) throw profilesError;
+
+      const foundEmails = new Set((profiles || []).map(p => p.email.toLowerCase()));
+      const notFoundEmails = emails.filter(e => !foundEmails.has(e));
+
+      const { data: existingMembers, error: membersError } = await supabase
+        .from("organization_members")
+        .select("user_id")
+        .eq("organization_id", selectedOrg.id);
+
+      if (membersError) throw membersError;
+
+      const existingUserIds = new Set((existingMembers || []).map(m => m.user_id));
+      const newProfiles = (profiles || []).filter(p => !existingUserIds.has(p.id));
+      const alreadyMemberEmails = (profiles || [])
+        .filter(p => existingUserIds.has(p.id))
+        .map(p => p.email);
+
+      if (newProfiles.length > 0) {
+        const { error: insertError } = await supabase
+          .from("organization_members")
+          .insert(newProfiles.map(p => ({
+            organization_id: selectedOrg.id,
+            user_id: p.id
+          })));
+
+        if (insertError) throw insertError;
+      }
+
+      setImportResults({
+        success: newProfiles.map(p => p.email),
+        notFound: notFoundEmails,
+        alreadyMember: alreadyMemberEmails
+      });
+
+      if (newProfiles.length > 0) {
+        toast.success(`Successfully added ${newProfiles.length} member(s)`);
+        fetchMembers(selectedOrg.id);
+        fetchOrganizations();
+      }
+    } catch (error: any) {
+      console.error("Error importing members:", error);
+      toast.error("Failed to import members");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const filteredOrganizations = organizations.filter(org =>
     org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (org.description && org.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -549,7 +646,15 @@ export function OrganizationManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => {
+                setCsvFile(null);
+                setImportResults(null);
+                setIsBulkImportDialogOpen(true);
+              }}>
+                <Upload className="h-4 w-4 mr-2" />
+                Bulk Import
+              </Button>
               <Button size="sm" onClick={handleOpenAddMember}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Member
@@ -657,6 +762,89 @@ export function OrganizationManagement() {
             <Button onClick={handleAddMember} disabled={!selectedUserId || isAddingMember}>
               {isAddingMember ? "Adding..." : "Add Member"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={isBulkImportDialogOpen} onOpenChange={setIsBulkImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Bulk Import Members
+            </DialogTitle>
+            <DialogDescription>
+              Upload a CSV file with email addresses to add multiple members at once.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="border-2 border-dashed rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept=".csv,.txt"
+                onChange={(e) => {
+                  setCsvFile(e.target.files?.[0] || null);
+                  setImportResults(null);
+                }}
+                className="hidden"
+                id="csv-upload"
+              />
+              <label htmlFor="csv-upload" className="cursor-pointer">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm font-medium">
+                  {csvFile ? csvFile.name : "Click to upload CSV"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  CSV file with email addresses (one per row or comma-separated)
+                </p>
+              </label>
+            </div>
+
+            {importResults && (
+              <div className="space-y-3 text-sm">
+                {importResults.success.length > 0 && (
+                  <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+                    <p className="font-medium text-green-800 dark:text-green-200">
+                      Added ({importResults.success.length}):
+                    </p>
+                    <p className="text-green-700 dark:text-green-300 text-xs mt-1">
+                      {importResults.success.join(", ")}
+                    </p>
+                  </div>
+                )}
+                {importResults.alreadyMember.length > 0 && (
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                    <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                      Already members ({importResults.alreadyMember.length}):
+                    </p>
+                    <p className="text-yellow-700 dark:text-yellow-300 text-xs mt-1">
+                      {importResults.alreadyMember.join(", ")}
+                    </p>
+                  </div>
+                )}
+                {importResults.notFound.length > 0 && (
+                  <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
+                    <p className="font-medium text-red-800 dark:text-red-200">
+                      Not found ({importResults.notFound.length}):
+                    </p>
+                    <p className="text-red-700 dark:text-red-300 text-xs mt-1">
+                      {importResults.notFound.join(", ")}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkImportDialogOpen(false)}>
+              {importResults ? "Close" : "Cancel"}
+            </Button>
+            {!importResults && (
+              <Button onClick={handleBulkImport} disabled={!csvFile || isImporting}>
+                {isImporting ? "Importing..." : "Import Members"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
