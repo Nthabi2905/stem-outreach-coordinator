@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      organization_activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          organization_id: string | null
+          organization_name: string
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          organization_id?: string | null
+          organization_name: string
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          organization_id?: string | null
+          organization_name?: string
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_activity_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string

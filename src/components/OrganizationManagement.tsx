@@ -42,8 +42,24 @@ import {
   Eye,
   Pencil,
   Upload,
-  FileSpreadsheet
+  FileSpreadsheet,
+  History
 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface ActivityLog {
+  id: string;
+  organization_id: string | null;
+  organization_name: string;
+  action: string;
+  details: any;
+  performed_by: string;
+  created_at: string;
+  performer_profile?: {
+    email: string;
+    full_name: string | null;
+  };
+}
 
 interface Organization {
   id: string;
@@ -116,6 +132,81 @@ export function OrganizationManagement() {
   const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Activity logs
+  const [isActivityLogDialogOpen, setIsActivityLogDialogOpen] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getCurrentUser();
+  }, []);
+
+  const logActivity = async (
+    orgId: string | null,
+    orgName: string,
+    action: string,
+    details: Record<string, any> = {}
+  ) => {
+    if (!currentUserId) return;
+    
+    try {
+      await supabase.from("organization_activity_logs").insert({
+        organization_id: orgId,
+        organization_name: orgName,
+        action,
+        details,
+        performed_by: currentUserId
+      });
+    } catch (error) {
+      console.error("Error logging activity:", error);
+    }
+  };
+
+  const fetchActivityLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+      const { data: logs, error } = await supabase
+        .from("organization_activity_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      if (logs && logs.length > 0) {
+        const performerIds = [...new Set(logs.map(l => l.performed_by))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, email, full_name")
+          .in("id", performerIds);
+
+        const profileMap = (profiles || []).reduce((acc, p) => {
+          acc[p.id] = p;
+          return acc;
+        }, {} as Record<string, UserProfile>);
+
+        const logsWithProfiles = logs.map(log => ({
+          ...log,
+          performer_profile: profileMap[log.performed_by]
+        }));
+
+        setActivityLogs(logsWithProfiles);
+      } else {
+        setActivityLogs([]);
+      }
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      toast.error("Failed to load activity logs");
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
   useEffect(() => {
     fetchOrganizations();
   }, []);
@@ -166,14 +257,20 @@ export function OrganizationManagement() {
 
     setIsCreating(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("organizations")
         .insert({
           name: newOrgName.trim(),
           description: newOrgDescription.trim() || null
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      await logActivity(data.id, newOrgName.trim(), "created", {
+        description: newOrgDescription.trim() || null
+      });
 
       toast.success("Organization created successfully");
       setIsCreateDialogOpen(false);
@@ -205,6 +302,14 @@ export function OrganizationManagement() {
 
     setIsUpdating(true);
     try {
+      const changes: Record<string, { from: any; to: any }> = {};
+      if (editOrgName.trim() !== editingOrg.name) {
+        changes.name = { from: editingOrg.name, to: editOrgName.trim() };
+      }
+      if ((editOrgDescription.trim() || null) !== editingOrg.description) {
+        changes.description = { from: editingOrg.description, to: editOrgDescription.trim() || null };
+      }
+
       const { error } = await supabase
         .from("organizations")
         .update({
@@ -214,6 +319,8 @@ export function OrganizationManagement() {
         .eq("id", editingOrg.id);
 
       if (error) throw error;
+
+      await logActivity(editingOrg.id, editOrgName.trim(), "updated", { changes });
 
       toast.success("Organization updated successfully");
       setIsEditDialogOpen(false);
@@ -232,6 +339,8 @@ export function OrganizationManagement() {
 
     setIsDeleting(true);
     try {
+      const deletedMemberCount = orgToDelete.member_count || 0;
+      
       // First, delete all members of the organization
       const { error: membersError } = await supabase
         .from("organization_members")
@@ -239,6 +348,11 @@ export function OrganizationManagement() {
         .eq("organization_id", orgToDelete.id);
 
       if (membersError) throw membersError;
+
+      // Log before deleting (org_id will be set to null due to ON DELETE SET NULL)
+      await logActivity(null, orgToDelete.name, "deleted", {
+        members_removed: deletedMemberCount
+      });
 
       // Then delete the organization itself
       const { error: orgError } = await supabase
@@ -349,6 +463,8 @@ export function OrganizationManagement() {
 
     setIsAddingMember(true);
     try {
+      const selectedUser = availableUsers.find(u => u.id === selectedUserId);
+      
       const { error } = await supabase
         .from("organization_members")
         .insert({
@@ -358,12 +474,17 @@ export function OrganizationManagement() {
 
       if (error) throw error;
 
+      await logActivity(selectedOrg.id, selectedOrg.name, "member_added", {
+        member_email: selectedUser?.email,
+        member_name: selectedUser?.full_name
+      });
+
       toast.success("Member added successfully");
       setIsAddMemberDialogOpen(false);
       setSelectedUserId("");
       setUserSearchQuery("");
       fetchMembers(selectedOrg.id);
-      fetchOrganizations(); // Update member count
+      fetchOrganizations();
     } catch (error: any) {
       console.error("Error adding member:", error);
       toast.error("Failed to add member");
@@ -373,7 +494,7 @@ export function OrganizationManagement() {
   };
 
   const handleRemoveMember = async () => {
-    if (!memberToDelete) return;
+    if (!memberToDelete || !selectedOrg) return;
 
     try {
       const { error } = await supabase
@@ -383,12 +504,15 @@ export function OrganizationManagement() {
 
       if (error) throw error;
 
+      await logActivity(selectedOrg.id, selectedOrg.name, "member_removed", {
+        member_email: memberToDelete.profile?.email,
+        member_name: memberToDelete.profile?.full_name
+      });
+
       toast.success("Member removed successfully");
       setMemberToDelete(null);
-      if (selectedOrg) {
-        fetchMembers(selectedOrg.id);
-        fetchOrganizations(); // Update member count
-      }
+      fetchMembers(selectedOrg.id);
+      fetchOrganizations();
     } catch (error: any) {
       console.error("Error removing member:", error);
       toast.error("Failed to remove member");
@@ -468,6 +592,11 @@ export function OrganizationManagement() {
       });
 
       if (newProfiles.length > 0) {
+        await logActivity(selectedOrg.id, selectedOrg.name, "bulk_import", {
+          members_added: newProfiles.length,
+          emails: newProfiles.map(p => p.email)
+        });
+
         toast.success(`Successfully added ${newProfiles.length} member(s)`);
         fetchMembers(selectedOrg.id);
         fetchOrganizations();
@@ -512,6 +641,13 @@ export function OrganizationManagement() {
           />
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            setIsActivityLogDialogOpen(true);
+            fetchActivityLogs();
+          }}>
+            <History className="h-4 w-4 mr-2" />
+            Activity Log
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchOrganizations}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -938,6 +1074,86 @@ export function OrganizationManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Activity Log Dialog */}
+      <Dialog open={isActivityLogDialogOpen} onOpenChange={setIsActivityLogDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Organization Activity Log
+            </DialogTitle>
+            <DialogDescription>
+              Recent activity across all organizations.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[400px] pr-4">
+            {isLoadingLogs ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : activityLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No activity logged yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activityLogs.map((log) => (
+                  <div key={log.id} className="border rounded-lg p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={
+                          log.action === "created" ? "default" :
+                          log.action === "updated" ? "secondary" :
+                          log.action === "deleted" ? "destructive" :
+                          "outline"
+                        }>
+                          {log.action}
+                        </Badge>
+                        <span className="font-medium">{log.organization_name}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(log.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      by {log.performer_profile?.full_name || log.performer_profile?.email || "Unknown"}
+                    </p>
+                    {log.details && Object.keys(log.details).length > 0 && (
+                      <div className="text-xs bg-muted/50 rounded p-2 mt-2">
+                        {log.action === "updated" && log.details.changes && (
+                          <div className="space-y-1">
+                            {Object.entries(log.details.changes).map(([key, value]: [string, any]) => (
+                              <div key={key}>
+                                <span className="font-medium capitalize">{key}:</span>{" "}
+                                <span className="text-muted-foreground">{value.from || "(empty)"}</span>
+                                {" → "}
+                                <span>{value.to || "(empty)"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {log.action === "deleted" && log.details.members_removed > 0 && (
+                          <span>{log.details.members_removed} member(s) removed</span>
+                        )}
+                        {log.action === "member_added" && (
+                          <span>Added: {log.details.member_email}</span>
+                        )}
+                        {log.action === "member_removed" && (
+                          <span>Removed: {log.details.member_email}</span>
+                        )}
+                        {log.action === "bulk_import" && (
+                          <span>{log.details.members_added} member(s) imported</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
