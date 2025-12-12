@@ -113,6 +113,8 @@ export function OrganizationManagement() {
 
   // Delete confirmation
   const [memberToDelete, setMemberToDelete] = useState<OrganizationMember | null>(null);
+  const [orgToDelete, setOrgToDelete] = useState<Organization | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchOrganizations();
@@ -222,6 +224,38 @@ export function OrganizationManagement() {
       toast.error("Failed to update organization");
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteOrganization = async () => {
+    if (!orgToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // First, delete all members of the organization
+      const { error: membersError } = await supabase
+        .from("organization_members")
+        .delete()
+        .eq("organization_id", orgToDelete.id);
+
+      if (membersError) throw membersError;
+
+      // Then delete the organization itself
+      const { error: orgError } = await supabase
+        .from("organizations")
+        .delete()
+        .eq("id", orgToDelete.id);
+
+      if (orgError) throw orgError;
+
+      toast.success(`Organization "${orgToDelete.name}" deleted successfully`);
+      setOrgToDelete(null);
+      fetchOrganizations();
+    } catch (error: any) {
+      console.error("Error deleting organization:", error);
+      toast.error("Failed to delete organization");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -546,6 +580,14 @@ export function OrganizationManagement() {
                         <Eye className="h-4 w-4 mr-2" />
                         Members
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setOrgToDelete(org)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -864,6 +906,34 @@ export function OrganizationManagement() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleRemoveMember} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Organization Confirmation */}
+      <AlertDialog open={!!orgToDelete} onOpenChange={() => setOrgToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Organization</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{orgToDelete?.name}</strong>?
+              {orgToDelete?.member_count && orgToDelete.member_count > 0 && (
+                <span className="block mt-2 text-destructive">
+                  This will also remove {orgToDelete.member_count} member(s) from this organization.
+                </span>
+              )}
+              <span className="block mt-2">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteOrganization} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete Organization"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
