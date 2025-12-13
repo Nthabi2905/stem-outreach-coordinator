@@ -31,7 +31,7 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <DashboardHeader title="Learner Dashboard" onSignOut={handleSignOut} />
+      <DashboardHeader title="Learner Dashboard" onSignOut={handleSignOut} role="learner" />
       
       <WelcomeBanner 
         name={userName || "Learner"} 
