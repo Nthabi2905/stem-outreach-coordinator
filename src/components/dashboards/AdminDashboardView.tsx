@@ -191,7 +191,7 @@ export const AdminDashboardView = ({ userEmail, userName }: AdminDashboardViewPr
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardHeader title="Admin Dashboard" onSignOut={handleSignOut} />
+      <DashboardHeader title="Admin Dashboard" onSignOut={handleSignOut} role="admin" />
       
       <WelcomeBanner 
         name={userName || "System Administrator"} 

@@ -93,7 +93,7 @@ export const SchoolOfficialDashboardView = ({ userEmail, userName, userId }: Sch
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <DashboardHeader title="School Dashboard" onSignOut={handleSignOut} />
+      <DashboardHeader title="School Dashboard" onSignOut={handleSignOut} role="school_official" />
       
       <WelcomeBanner 
         name={userName || "School Official"} 
