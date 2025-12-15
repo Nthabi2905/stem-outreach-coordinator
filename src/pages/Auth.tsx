@@ -108,29 +108,33 @@ const Auth = () => {
   const demoAccounts = [
     {
       role: "Admin",
-      email: "admin@edureach.co.za",
+      email: "admin@stemreach.org",
+      password: "demo123456",
       description: "System oversight & analytics",
       icon: UserCheck,
       color: "bg-primary/10 text-primary",
     },
     {
       role: "Organization",
-      email: "coordinator@steminnovate.org",
+      email: "org@stemreach.org",
+      password: "demo123456",
       description: "Plan outreach activities",
       icon: Building2,
       color: "bg-amber-100 text-amber-600",
     },
     {
-      role: "School",
-      email: "principal@phuthaditjhaba.edu",
+      role: "School Official",
+      email: "school@stemreach.org",
+      password: "demo123456",
       description: "Request STEM support",
       icon: School,
       color: "bg-emerald-100 text-emerald-600",
     },
     {
-      role: "Representative",
-      email: "rep@edureach.co.za",
-      description: "Onsite verification",
+      role: "Learner",
+      email: "learner@stemreach.org",
+      password: "demo123456",
+      description: "Access learning resources",
       icon: GraduationCap,
       color: "bg-blue-100 text-blue-600",
     },
@@ -291,7 +295,10 @@ const Auth = () => {
             {demoAccounts.map((account) => (
               <button
                 key={account.role}
-                onClick={() => setEmail(account.email)}
+                onClick={() => {
+                  setEmail(account.email);
+                  setPassword(account.password);
+                }}
                 className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all group"
               >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${account.color}`}>
