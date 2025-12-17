@@ -10,6 +10,7 @@ import SchoolResponse from "./pages/SchoolResponse";
 import Questionnaires from "./pages/Questionnaires";
 import AdminDashboard from "./pages/AdminDashboard";
 import PlanningTool from "./pages/PlanningTool";
+import Campaigns from "./pages/Campaigns";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="/admin/responses" element={<AdminDashboard />} />
           <Route path="/planning" element={<PlanningTool />} />
+          <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/school-response/:token" element={<SchoolResponse />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
