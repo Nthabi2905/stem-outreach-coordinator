@@ -4,11 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardHeader } from "@/components/dashboards/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LetterPreviewDialog } from "@/components/LetterPreviewDialog";
 import { toast } from "sonner";
 import { 
   Sparkles, 
@@ -21,7 +24,13 @@ import {
   ChevronLeft,
   ArrowRight,
   Building2,
-  GraduationCap
+  GraduationCap,
+  Calendar,
+  Clock,
+  FileText,
+  Send,
+  Mail,
+  Loader2
 } from "lucide-react";
 
 interface SchoolRecommendation {
@@ -51,6 +60,28 @@ interface MatchResult {
   recommendations: SchoolRecommendation[];
   summary: string;
   totalSchoolsAnalyzed: number;
+}
+
+interface VisitDetails {
+  visitDate: string;
+  visitTime: string;
+  duration: string;
+  programDescription: string;
+  targetGrades: string;
+  expectedParticipants: string;
+  additionalInfo: string;
+}
+
+interface GeneratedSchool {
+  id: string;
+  schoolId: string;
+  schoolName: string;
+  generated_letter: string | null;
+  generated_data: {
+    name: string;
+    schoolId: string;
+    schoolName: string;
+  };
 }
 
 const provinces = [
@@ -83,6 +114,24 @@ const PlanningTool = () => {
   const [result, setResult] = useState<MatchResult | null>(null);
   const [selectedSchools, setSelectedSchools] = useState<Set<string>>(new Set());
   const [step, setStep] = useState(1);
+  
+  // Campaign creation state
+  const [campaignId, setCampaignId] = useState<string>("");
+  const [visitDetails, setVisitDetails] = useState<VisitDetails>({
+    visitDate: "",
+    visitTime: "",
+    duration: "",
+    programDescription: "",
+    targetGrades: "",
+    expectedParticipants: "",
+    additionalInfo: "",
+  });
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
+  const [isGeneratingLetters, setIsGeneratingLetters] = useState(false);
+  const [letterProgress, setLetterProgress] = useState({ current: 0, total: 0 });
+  const [generatedSchools, setGeneratedSchools] = useState<GeneratedSchool[]>([]);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
 
   useEffect(() => {
     checkAuth();
@@ -166,6 +215,189 @@ const PlanningTool = () => {
     return "bg-orange-100 text-orange-700";
   };
 
+  const handleCreateCampaign = async () => {
+    if (!visitDetails.visitDate || !visitDetails.programDescription) {
+      toast.error("Please fill in required visit details");
+      return;
+    }
+
+    setIsCreatingCampaign(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get organization for user
+      const { data: orgMember, error: orgError } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (orgError || !orgMember) {
+        throw new Error("User is not associated with an organization");
+      }
+
+      // Create campaign
+      const campaignData = {
+        organization_id: orgMember.organization_id,
+        created_by: user.id,
+        province,
+        district: district || "All Districts",
+        school_type: targetQuintiles.join(","),
+        visit_details: JSON.parse(JSON.stringify(visitDetails)),
+        visit_date: visitDetails.visitDate,
+        status: "draft"
+      };
+      
+      const { data: campaign, error: campaignError } = await supabase
+        .from("outreach_campaigns")
+        .insert([campaignData])
+        .select()
+        .single();
+
+      if (campaignError) throw campaignError;
+
+      setCampaignId(campaign.id);
+
+      // Add selected schools to campaign
+      const selectedRecs = result?.recommendations.filter(r => selectedSchools.has(r.schoolId)) || [];
+      
+      const recommendationsToInsert = selectedRecs.map(rec => ({
+        campaign_id: campaign.id,
+        school_id: rec.schoolDetails?.id || null,
+        generated_data: {
+          schoolId: rec.schoolId,
+          schoolName: rec.schoolName,
+          matchScore: rec.matchScore,
+          priorityReason: rec.priorityReason,
+          suggestedActivities: rec.suggestedActivities,
+          schoolDetails: rec.schoolDetails
+        },
+        enrollment_total: rec.schoolDetails?.learners || null,
+        language_of_instruction: "English",
+        is_accepted: true
+      }));
+
+      const { data: insertedRecs, error: recsError } = await supabase
+        .from("school_recommendations")
+        .insert(recommendationsToInsert)
+        .select();
+
+      if (recsError) throw recsError;
+
+      toast.success("Campaign created successfully!");
+      setStep(4);
+      
+      // Start generating letters
+      await generateLettersForSchools(campaign.id, insertedRecs || []);
+
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to create campaign");
+    } finally {
+      setIsCreatingCampaign(false);
+    }
+  };
+
+  const generateLettersForSchools = async (campaignId: string, schools: any[]) => {
+    setIsGeneratingLetters(true);
+    setLetterProgress({ current: 0, total: schools.length });
+
+    const updatedSchools: GeneratedSchool[] = [];
+
+    for (let i = 0; i < schools.length; i++) {
+      const school = schools[i];
+      const schoolData = school.generated_data;
+
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-outreach-letter", {
+          body: {
+            campaignId,
+            schoolData: {
+              name: schoolData.schoolName,
+              location: schoolData.schoolDetails?.district 
+                ? `${schoolData.schoolDetails.district}, ${schoolData.schoolDetails.province}` 
+                : province,
+              learners: schoolData.schoolDetails?.learners || 0,
+              languageOfInstruction: school.language_of_instruction || "English"
+            },
+            visitDetails
+          }
+        });
+
+        if (error) throw error;
+
+        // Update the recommendation with the generated letter
+        await supabase
+          .from("school_recommendations")
+          .update({ generated_letter: data.letter })
+          .eq("id", school.id);
+
+        updatedSchools.push({
+          id: school.id,
+          schoolId: schoolData.schoolId,
+          schoolName: schoolData.schoolName,
+          generated_letter: data.letter,
+          generated_data: {
+            name: schoolData.schoolName,
+            schoolId: schoolData.schoolId,
+            schoolName: schoolData.schoolName
+          }
+        });
+
+      } catch (error) {
+        console.error(`Error generating letter for ${schoolData.schoolName}:`, error);
+        updatedSchools.push({
+          id: school.id,
+          schoolId: schoolData.schoolId,
+          schoolName: schoolData.schoolName,
+          generated_letter: null,
+          generated_data: {
+            name: schoolData.schoolName,
+            schoolId: schoolData.schoolId,
+            schoolName: schoolData.schoolName
+          }
+        });
+      }
+
+      setLetterProgress({ current: i + 1, total: schools.length });
+      
+      // Small delay to avoid rate limits
+      if (i < schools.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    setGeneratedSchools(updatedSchools);
+    setIsGeneratingLetters(false);
+    toast.success(`Generated ${updatedSchools.filter(s => s.generated_letter).length} letters!`);
+  };
+
+  const handleSaveEditedLetter = async (schoolId: string, editedLetter: string) => {
+    try {
+      const { error } = await supabase
+        .from("school_recommendations")
+        .update({ generated_letter: editedLetter })
+        .eq("id", schoolId);
+
+      if (error) throw error;
+
+      setGeneratedSchools(prev =>
+        prev.map(school =>
+          school.id === schoolId
+            ? { ...school, generated_letter: editedLetter }
+            : school
+        )
+      );
+
+      toast.success("Letter updated!");
+    } catch (error) {
+      console.error("Error saving letter:", error);
+      toast.error("Failed to save letter");
+      throw error;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -204,19 +436,33 @@ const PlanningTool = () => {
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center gap-2 mt-6">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-            step === 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+        <div className="flex items-center gap-2 mt-6 overflow-x-auto">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
+            step === 1 ? "bg-primary text-primary-foreground" : step > 1 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
           }`}>
             <span className="w-5 h-5 rounded-full bg-primary-foreground/20 flex items-center justify-center text-xs">1</span>
             Configure
           </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-            step === 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
+            step === 2 ? "bg-primary text-primary-foreground" : step > 2 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
           }`}>
             <span className="w-5 h-5 rounded-full bg-primary-foreground/20 flex items-center justify-center text-xs">2</span>
-            Review Results
+            Select Schools
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
+            step === 3 ? "bg-primary text-primary-foreground" : step > 3 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+          }`}>
+            <span className="w-5 h-5 rounded-full bg-primary-foreground/20 flex items-center justify-center text-xs">3</span>
+            Visit Details
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${
+            step === 4 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          }`}>
+            <span className="w-5 h-5 rounded-full bg-primary-foreground/20 flex items-center justify-center text-xs">4</span>
+            Letters
           </div>
         </div>
       </div>
@@ -440,8 +686,8 @@ const PlanningTool = () => {
                     <span className="text-sm font-semibold text-primary">
                       {selectedSchools.size} schools selected
                     </span>
-                    <Button size="sm">
-                      Create Campaign
+                    <Button size="sm" onClick={() => setStep(3)}>
+                      Continue
                       <ArrowRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
@@ -526,7 +772,282 @@ const PlanningTool = () => {
             </div>
           </div>
         )}
+
+        {/* Step 3: Visit Details */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setStep(2)}
+              className="-ml-2 text-muted-foreground"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to School Selection
+            </Button>
+
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold">Planning visit for {selectedSchools.size} schools</p>
+                    <p className="text-sm text-muted-foreground">
+                      Enter the details for your outreach visit
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Visit Date & Time */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Date & Time</CardTitle>
+                    <CardDescription>When will the visit take place?</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Visit Date *</label>
+                    <Input
+                      type="date"
+                      value={visitDetails.visitDate}
+                      onChange={e => setVisitDetails(prev => ({ ...prev, visitDate: e.target.value }))}
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Visit Time</label>
+                    <Input
+                      type="time"
+                      value={visitDetails.visitTime}
+                      onChange={e => setVisitDetails(prev => ({ ...prev, visitTime: e.target.value }))}
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Duration</label>
+                  <Select 
+                    value={visitDetails.duration} 
+                    onValueChange={v => setVisitDetails(prev => ({ ...prev, duration: v }))}
+                  >
+                    <SelectTrigger className="bg-muted/50 border-border/50">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1 hour">1 hour</SelectItem>
+                      <SelectItem value="2 hours">2 hours</SelectItem>
+                      <SelectItem value="Half day (3-4 hours)">Half day (3-4 hours)</SelectItem>
+                      <SelectItem value="Full day">Full day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Program Details */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Program Details</CardTitle>
+                    <CardDescription>Describe your outreach program</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Program Description *</label>
+                  <Textarea
+                    value={visitDetails.programDescription}
+                    onChange={e => setVisitDetails(prev => ({ ...prev, programDescription: e.target.value }))}
+                    placeholder="Describe the STEM activities you'll be offering..."
+                    className="bg-muted/50 border-border/50 min-h-[100px]"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Target Grades</label>
+                    <Input
+                      value={visitDetails.targetGrades}
+                      onChange={e => setVisitDetails(prev => ({ ...prev, targetGrades: e.target.value }))}
+                      placeholder="e.g., Grade 8-12"
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Expected Participants</label>
+                    <Input
+                      value={visitDetails.expectedParticipants}
+                      onChange={e => setVisitDetails(prev => ({ ...prev, expectedParticipants: e.target.value }))}
+                      placeholder="e.g., 50-100"
+                      className="bg-muted/50 border-border/50"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Additional Information</label>
+                  <Textarea
+                    value={visitDetails.additionalInfo}
+                    onChange={e => setVisitDetails(prev => ({ ...prev, additionalInfo: e.target.value }))}
+                    placeholder="Any special requirements or notes..."
+                    className="bg-muted/50 border-border/50"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Create Campaign Button */}
+            <Button 
+              onClick={handleCreateCampaign} 
+              disabled={isCreatingCampaign || !visitDetails.visitDate || !visitDetails.programDescription}
+              className="w-full h-14 text-base font-semibold"
+              size="lg"
+            >
+              {isCreatingCampaign ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Creating Campaign...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Create Campaign & Generate Letters
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Step 4: Generated Letters */}
+        {step === 4 && (
+          <div className="space-y-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setStep(3)}
+              className="-ml-2 text-muted-foreground"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Visit Details
+            </Button>
+
+            {isGeneratingLetters ? (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="py-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center gap-3">
+                      <Mail className="h-6 w-6 animate-pulse text-primary" />
+                      <span className="text-lg font-medium">Generating Letters...</span>
+                    </div>
+                    <Progress value={(letterProgress.current / letterProgress.total) * 100} className="w-full" />
+                    <p className="text-center text-sm text-muted-foreground">
+                      {letterProgress.current} of {letterProgress.total} letters generated
+                    </p>
+                    <div className="grid grid-cols-1 gap-4">
+                      {[1, 2, 3].map(i => (
+                        <Skeleton key={i} className="h-24 rounded-xl" />
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">Letters Generated!</p>
+                        <p className="text-sm text-muted-foreground">
+                          {generatedSchools.filter(s => s.generated_letter).length} of {generatedSchools.length} letters ready
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Letter Cards */}
+                <div className="space-y-3">
+                  {generatedSchools.map((school, index) => (
+                    <Card 
+                      key={school.id}
+                      className="border-border/50 cursor-pointer hover:border-primary/50 transition-all"
+                      onClick={() => {
+                        setCurrentPreviewIndex(index);
+                        setPreviewDialogOpen(true);
+                      }}
+                    >
+                      <CardContent className="py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <Mail className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">{school.schoolName}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {school.generated_letter ? "Letter ready" : "Letter generation failed"}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant={school.generated_letter ? "default" : "destructive"}>
+                            {school.generated_letter ? "Ready" : "Failed"}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => navigate("/")}
+                  >
+                    Back to Dashboard
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      toast.success("Campaign saved! You can send letters from the Campaign Dashboard.");
+                      navigate("/");
+                    }}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Save Campaign
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Letter Preview Dialog */}
+      <LetterPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        schools={generatedSchools}
+        currentIndex={currentPreviewIndex}
+        onNavigate={setCurrentPreviewIndex}
+        onSave={handleSaveEditedLetter}
+      />
     </div>
   );
 };
