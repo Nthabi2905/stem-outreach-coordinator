@@ -12,7 +12,9 @@ import {
   Lightbulb,
   GraduationCap,
   Clock,
-  Sparkles
+  Sparkles,
+  FileText,
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -145,6 +147,26 @@ export const OrganizationDashboardView = ({ userEmail, userName, userId }: Organ
             className="bg-primary text-primary-foreground"
           >
             Start
+          </Button>
+        </div>
+      </div>
+
+      {/* Track Campaigns Card */}
+      <div className="px-4 py-2">
+        <div className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+            <FileText className="h-5 w-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-foreground">Track Campaigns</h4>
+            <p className="text-sm text-muted-foreground">Monitor school responses & engagement</p>
+          </div>
+          <Button 
+            variant="outline"
+            onClick={() => navigate("/campaigns")}
+          >
+            View
+            <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       </div>
