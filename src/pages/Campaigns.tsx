@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CampaignDashboard from "@/components/CampaignDashboard";
+import CampaignMapView from "@/components/CampaignMapView";
 import { toast } from "sonner";
 import { 
   ChevronLeft, 
@@ -20,7 +22,9 @@ import {
   XCircle,
   Sparkles,
   ArrowRight,
-  FileText
+  FileText,
+  List,
+  Map
 } from "lucide-react";
 
 interface Campaign {
@@ -40,11 +44,20 @@ interface Campaign {
   };
 }
 
+interface SchoolRecommendation {
+  id: string;
+  response_status: string;
+  generated_data: any;
+  campaign_id: string;
+}
+
 const Campaigns = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [allRecommendations, setAllRecommendations] = useState<SchoolRecommendation[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const selectedCampaignId = searchParams.get("id");
 
   useEffect(() => {
@@ -70,25 +83,35 @@ const Campaigns = () => {
 
       if (campaignsError) throw campaignsError;
 
+      // Load all recommendations for map view
+      const campaignIds = (campaignsData || []).map(c => c.id);
+      let allRecs: SchoolRecommendation[] = [];
+      
+      if (campaignIds.length > 0) {
+        const { data: recsData, error: recsError } = await supabase
+          .from("school_recommendations")
+          .select("id, response_status, generated_data, campaign_id")
+          .in("campaign_id", campaignIds)
+          .eq("is_accepted", true);
+        
+        if (!recsError && recsData) {
+          allRecs = recsData;
+        }
+      }
+      
+      setAllRecommendations(allRecs);
+
       // Load stats for each campaign
-      const campaignsWithStats = await Promise.all(
-        (campaignsData || []).map(async (campaign) => {
-          const { data: recs } = await supabase
-            .from("school_recommendations")
-            .select("response_status, is_accepted")
-            .eq("campaign_id", campaign.id)
-            .eq("is_accepted", true);
-
-          const stats = {
-            total: recs?.length || 0,
-            confirmed: recs?.filter(r => r.response_status === 'confirmed').length || 0,
-            declined: recs?.filter(r => r.response_status === 'declined').length || 0,
-            pending: recs?.filter(r => r.response_status === 'pending').length || 0,
-          };
-
-          return { ...campaign, stats };
-        })
-      );
+      const campaignsWithStats = (campaignsData || []).map(campaign => {
+        const recs = allRecs.filter(r => r.campaign_id === campaign.id);
+        const stats = {
+          total: recs.length,
+          confirmed: recs.filter(r => r.response_status === 'confirmed').length,
+          declined: recs.filter(r => r.response_status === 'declined').length,
+          pending: recs.filter(r => r.response_status === 'pending').length,
+        };
+        return { ...campaign, stats };
+      });
 
       setCampaigns(campaignsWithStats);
     } catch (error) {
@@ -287,96 +310,130 @@ const Campaigns = () => {
           </Card>
         </div>
 
-        {/* Campaign List */}
-        <div className="space-y-3">
-          <h2 className="font-semibold text-lg">Your Campaigns</h2>
-          
-          {campaigns.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-12 text-center">
-                <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="font-semibold text-lg mb-2">No campaigns yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Create your first outreach campaign using the AI Planning Tool
-                </p>
-                <Button onClick={() => navigate("/planning")}>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Create Campaign
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            campaigns.map(campaign => {
-              const responseRate = campaign.stats?.total 
-                ? Math.round(((campaign.stats.confirmed + campaign.stats.declined) / campaign.stats.total) * 100)
-                : 0;
+        {/* View Toggle and Content */}
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "list" | "map")} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-lg">Your Campaigns</h2>
+            <TabsList className="grid w-[200px] grid-cols-2">
+              <TabsTrigger value="list" className="flex items-center gap-2">
+                <List className="h-4 w-4" />
+                List
+              </TabsTrigger>
+              <TabsTrigger value="map" className="flex items-center gap-2">
+                <Map className="h-4 w-4" />
+                Map
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-              return (
-                <Card 
-                  key={campaign.id}
-                  className="cursor-pointer hover:border-primary/50 transition-all"
-                  onClick={() => setSearchParams({ id: campaign.id })}
-                >
-                  <CardContent className="py-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <MapPin className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{campaign.province}</h3>
-                          <p className="text-sm text-muted-foreground">{campaign.district}</p>
-                        </div>
-                      </div>
-                      <Badge className={getStatusColor(campaign.status)}>
-                        {getStatusLabel(campaign.status)}
-                      </Badge>
-                    </div>
+          <TabsContent value="list" className="space-y-3 mt-0">
+            {campaigns.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">No campaigns yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Create your first outreach campaign using the AI Planning Tool
+                  </p>
+                  <Button onClick={() => navigate("/planning")}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Create Campaign
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              campaigns.map(campaign => {
+                const responseRate = campaign.stats?.total 
+                  ? Math.round(((campaign.stats.confirmed + campaign.stats.declined) / campaign.stats.total) * 100)
+                  : 0;
 
-                    {/* Stats Row */}
-                    <div className="flex items-center gap-4 mb-3 text-sm">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>{campaign.stats?.total || 0} schools</span>
-                      </div>
-                      {campaign.visit_date && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(campaign.visit_date).toLocaleDateString('en-ZA', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Response Progress */}
-                    {(campaign.stats?.total || 0) > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Response rate</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-green-600">{campaign.stats?.confirmed} confirmed</span>
-                            <span className="text-muted-foreground">•</span>
-                            <span className="text-blue-600">{campaign.stats?.pending} pending</span>
+                return (
+                  <Card 
+                    key={campaign.id}
+                    className="cursor-pointer hover:border-primary/50 transition-all"
+                    onClick={() => setSearchParams({ id: campaign.id })}
+                  >
+                    <CardContent className="py-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <MapPin className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{campaign.province}</h3>
+                            <p className="text-sm text-muted-foreground">{campaign.district}</p>
                           </div>
                         </div>
-                        <Progress value={responseRate} className="h-2" />
+                        <Badge className={getStatusColor(campaign.status)}>
+                          {getStatusLabel(campaign.status)}
+                        </Badge>
                       </div>
-                    )}
 
-                    <div className="flex items-center justify-end mt-3">
-                      <Button variant="ghost" size="sm" className="text-primary">
-                        View Details
-                        <ArrowRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
+                      {/* Stats Row */}
+                      <div className="flex items-center gap-4 mb-3 text-sm">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          <span>{campaign.stats?.total || 0} schools</span>
+                        </div>
+                        {campaign.visit_date && (
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(campaign.visit_date).toLocaleDateString('en-ZA', {
+                              month: 'short',
+                              day: 'numeric'
+                            })}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Response Progress */}
+                      {(campaign.stats?.total || 0) > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Response rate</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-green-600">{campaign.stats?.confirmed} confirmed</span>
+                              <span className="text-muted-foreground">•</span>
+                              <span className="text-blue-600">{campaign.stats?.pending} pending</span>
+                            </div>
+                          </div>
+                          <Progress value={responseRate} className="h-2" />
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-end mt-3">
+                        <Button variant="ghost" size="sm" className="text-primary">
+                          View Details
+                          <ArrowRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </TabsContent>
+
+          <TabsContent value="map" className="mt-0">
+            {allRecommendations.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <Map className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">No schools to display</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Create a campaign and add schools to see them on the map
+                  </p>
+                  <Button onClick={() => navigate("/planning")}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Create Campaign
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <CampaignMapView recommendations={allRecommendations} />
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
