@@ -13,9 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { organizationId, province, district, targetQuintiles, servicesOffered, maxSchools = 10 } = await req.json();
+    const body = await req.json();
+    const organizationId = body.organizationId;
+    const province = sanitizePromptInput(String(body.province || ''));
+    const district = body.district ? sanitizePromptInput(String(body.district)) : null;
+    const targetQuintiles = body.targetQuintiles;
+    const servicesOffered = body.servicesOffered;
+    const maxSchools = body.maxSchools || 10;
     
-    console.log('AI Match Schools request:', { organizationId, province, district, targetQuintiles, servicesOffered, maxSchools });
+    console.log('AI Match Schools request:', { organizationId, province, district, maxSchools });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
