@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizePromptInput } from "../_shared/promptSecurity.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const { province, district, schoolType, batchSize = 10 } = await req.json();
+    const body = await req.json();
+    const province = body.province ? sanitizePromptInput(String(body.province)) : null;
+    const district = body.district ? sanitizePromptInput(String(body.district)) : null;
+    const schoolType = body.schoolType ? sanitizePromptInput(String(body.schoolType)) : null;
+    const batchSize = Math.min(Math.max(1, parseInt(body.batchSize) || 10), 50);
     
     console.log("Finding underserved schools with criteria:", { province, district, schoolType, batchSize });
 

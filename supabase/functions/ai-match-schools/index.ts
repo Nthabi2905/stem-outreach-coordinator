@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizePromptInput } from "../_shared/promptSecurity.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,9 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { organizationId, province, district, targetQuintiles, servicesOffered, maxSchools = 10 } = await req.json();
+    const body = await req.json();
+    const organizationId = body.organizationId;
+    const province = sanitizePromptInput(String(body.province || ''));
+    const district = body.district ? sanitizePromptInput(String(body.district)) : null;
+    const targetQuintiles = body.targetQuintiles;
+    const servicesOffered = body.servicesOffered;
+    const maxSchools = body.maxSchools || 10;
     
-    console.log('AI Match Schools request:', { organizationId, province, district, targetQuintiles, servicesOffered, maxSchools });
+    console.log('AI Match Schools request:', { organizationId, province, district, maxSchools });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -93,6 +100,8 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    const cleanServices = (servicesOffered || ['STEM workshops', 'Science demonstrations']).map((s: string) => sanitizePromptInput(String(s)));
+
     const prompt = `You are an AI matching engine for STEM outreach in South Africa. 
     
 Your task is to analyze and rank schools for STEM outreach based on these criteria:
@@ -101,7 +110,7 @@ Your task is to analyze and rank schools for STEM outreach based on these criter
 3. **Size impact**: Schools with more learners = greater impact potential
 4. **Geographic clustering**: Group nearby schools for efficient route planning
 
-Organization offering these services: ${JSON.stringify(servicesOffered || ['STEM workshops', 'Science demonstrations'])}
+Organization offering these services: ${JSON.stringify(cleanServices)}
 
 Available schools data:
 ${JSON.stringify(schoolData.slice(0, 50), null, 2)}
