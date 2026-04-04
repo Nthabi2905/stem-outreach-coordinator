@@ -94,6 +94,8 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    const cleanServices = (servicesOffered || ['STEM workshops', 'Science demonstrations']).map((s: string) => sanitizePromptInput(String(s)));
+
     const prompt = `You are an AI matching engine for STEM outreach in South Africa. 
     
 Your task is to analyze and rank schools for STEM outreach based on these criteria:
@@ -102,7 +104,7 @@ Your task is to analyze and rank schools for STEM outreach based on these criter
 3. **Size impact**: Schools with more learners = greater impact potential
 4. **Geographic clustering**: Group nearby schools for efficient route planning
 
-Organization offering these services: ${JSON.stringify(servicesOffered || ['STEM workshops', 'Science demonstrations'])}
+Organization offering these services: ${JSON.stringify(cleanServices)}
 
 Available schools data:
 ${JSON.stringify(schoolData.slice(0, 50), null, 2)}
