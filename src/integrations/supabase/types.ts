@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      mentor_requests: {
+        Row: {
+          created_at: string
+          field_of_interest: string
+          goals: string | null
+          grade_level: string | null
+          id: string
+          matched_at: string | null
+          matched_mentor_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_of_interest: string
+          goals?: string | null
+          grade_level?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_mentor_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          field_of_interest?: string
+          goals?: string | null
+          grade_level?: string | null
+          id?: string
+          matched_at?: string | null
+          matched_mentor_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_activity_logs: {
         Row: {
           action: string
