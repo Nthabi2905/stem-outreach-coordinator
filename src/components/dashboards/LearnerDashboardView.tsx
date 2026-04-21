@@ -25,6 +25,9 @@ import {
   FlaskConical,
   Rocket,
   Trophy,
+  Mail,
+  Linkedin,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,6 +141,12 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
     field_of_interest: string;
     status: string;
     matched_mentor_name: string | null;
+    matched_mentor_email: string | null;
+    matched_mentor_role: string | null;
+    matched_mentor_organization: string | null;
+    matched_mentor_bio: string | null;
+    matched_mentor_linkedin: string | null;
+    contact_instructions: string | null;
     created_at: string;
   };
   const [requests, setRequests] = useState<MentorRequest[]>([]);
@@ -147,7 +156,9 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
     if (!user) return;
     const { data, error } = await supabase
       .from("mentor_requests")
-      .select("id, field_of_interest, status, matched_mentor_name, created_at")
+      .select(
+        "id, field_of_interest, status, matched_mentor_name, matched_mentor_email, matched_mentor_role, matched_mentor_organization, matched_mentor_bio, matched_mentor_linkedin, contact_instructions, created_at"
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setRequests(data);
@@ -369,27 +380,117 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
               <div className="mt-4 space-y-3">
                 {requests.map((r) => {
                   const matched = r.status === "matched";
+                  if (!matched) {
+                    return (
+                      <div
+                        key={r.id}
+                        className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4 flex-wrap sm:flex-nowrap"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-[hsl(160,40%,88%)] flex items-center justify-center shrink-0">
+                          <Users className="h-6 w-6 text-emerald-700" />
+                        </div>
+                        <div className="flex-1 min-w-[180px]">
+                          <h4 className="font-semibold text-foreground">{r.field_of_interest}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Submitted {new Date(r.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">Pending</Badge>
+                      </div>
+                    );
+                  }
+
+                  // Matched: show full mentor profile + suggested next steps
+                  const mentorInitial = (r.matched_mentor_name || "M").charAt(0).toUpperCase();
+                  const subject = encodeURIComponent(
+                    `Mentorship intro — ${r.field_of_interest}`
+                  );
+                  const body = encodeURIComponent(
+                    `Hi ${r.matched_mentor_name || "there"},\n\nI'm ${firstName}. I was matched with you through StellarConnect for guidance on ${r.field_of_interest}.\n\nWould you be open to a short intro call in the next two weeks?\n\nThanks,\n${firstName}`
+                  );
+                  const mailto = r.matched_mentor_email
+                    ? `mailto:${r.matched_mentor_email}?subject=${subject}&body=${body}`
+                    : null;
+
+                  const defaultSteps = [
+                    "Send a short intro email within 48 hours",
+                    "Share your goals and one specific question",
+                    "Suggest 2–3 times for a 30-min intro call",
+                  ];
+
                   return (
                     <div
                       key={r.id}
-                      className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4 flex-wrap sm:flex-nowrap"
+                      className="rounded-2xl border border-border bg-card overflow-hidden"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-[hsl(160,40%,88%)] flex items-center justify-center shrink-0">
-                        <Users className="h-6 w-6 text-emerald-700" />
+                      <div className="bg-[hsl(160,40%,92%)] p-5 flex items-start gap-4 flex-wrap sm:flex-nowrap">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-200 to-teal-300 flex items-center justify-center text-2xl font-bold text-foreground/80 shrink-0">
+                          {mentorInitial}
+                        </div>
+                        <div className="flex-1 min-w-[200px]">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-bold text-foreground">{r.matched_mentor_name}</h4>
+                            <Badge className="bg-emerald-600 hover:bg-emerald-600">Matched</Badge>
+                          </div>
+                          {(r.matched_mentor_role || r.matched_mentor_organization) && (
+                            <p className="text-sm text-foreground/70 mt-0.5">
+                              {[r.matched_mentor_role, r.matched_mentor_organization]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            For: {r.field_of_interest}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-[180px]">
-                        <h4 className="font-semibold text-foreground">{r.field_of_interest}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Submitted {new Date(r.created_at).toLocaleDateString()}
-                          {matched && r.matched_mentor_name ? ` · Mentor: ${r.matched_mentor_name}` : ""}
-                        </p>
+
+                      {r.matched_mentor_bio && (
+                        <div className="p-5 border-b border-border">
+                          <p className="text-sm text-foreground/80">{r.matched_mentor_bio}</p>
+                        </div>
+                      )}
+
+                      <div className="p-5 space-y-4">
+                        <div>
+                          <h5 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <ListChecks className="h-4 w-4 text-emerald-600" />
+                            Suggested next steps
+                          </h5>
+                          {r.contact_instructions ? (
+                            <p className="mt-2 text-sm text-foreground/80 whitespace-pre-line">
+                              {r.contact_instructions}
+                            </p>
+                          ) : (
+                            <ol className="mt-2 list-decimal list-inside space-y-1 text-sm text-foreground/80">
+                              {defaultSteps.map((s) => (
+                                <li key={s}>{s}</li>
+                              ))}
+                            </ol>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {mailto && (
+                            <Button asChild size="sm" className="rounded-full">
+                              <a href={mailto}>
+                                <Mail className="h-4 w-4" /> Email mentor
+                              </a>
+                            </Button>
+                          )}
+                          {r.matched_mentor_linkedin && (
+                            <Button asChild size="sm" variant="outline" className="rounded-full">
+                              <a
+                                href={r.matched_mentor_linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Linkedin className="h-4 w-4" /> LinkedIn
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <Badge
-                        variant={matched ? "default" : "secondary"}
-                        className={matched ? "bg-emerald-600 hover:bg-emerald-600" : ""}
-                      >
-                        {matched ? "Matched" : "Pending"}
-                      </Badge>
                     </div>
                   );
                 })}
