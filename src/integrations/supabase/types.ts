@@ -16,37 +16,55 @@ export type Database = {
     Tables: {
       mentor_requests: {
         Row: {
+          contact_instructions: string | null
           created_at: string
           field_of_interest: string
           goals: string | null
           grade_level: string | null
           id: string
           matched_at: string | null
+          matched_mentor_bio: string | null
+          matched_mentor_email: string | null
+          matched_mentor_linkedin: string | null
           matched_mentor_name: string | null
+          matched_mentor_organization: string | null
+          matched_mentor_role: string | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          contact_instructions?: string | null
           created_at?: string
           field_of_interest: string
           goals?: string | null
           grade_level?: string | null
           id?: string
           matched_at?: string | null
+          matched_mentor_bio?: string | null
+          matched_mentor_email?: string | null
+          matched_mentor_linkedin?: string | null
           matched_mentor_name?: string | null
+          matched_mentor_organization?: string | null
+          matched_mentor_role?: string | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          contact_instructions?: string | null
           created_at?: string
           field_of_interest?: string
           goals?: string | null
           grade_level?: string | null
           id?: string
           matched_at?: string | null
+          matched_mentor_bio?: string | null
+          matched_mentor_email?: string | null
+          matched_mentor_linkedin?: string | null
           matched_mentor_name?: string | null
+          matched_mentor_organization?: string | null
+          matched_mentor_role?: string | null
           status?: string
           updated_at?: string
           user_id?: string
