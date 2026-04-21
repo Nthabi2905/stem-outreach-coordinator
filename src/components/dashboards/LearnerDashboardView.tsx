@@ -362,7 +362,41 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
             </Dialog>
           </div>
 
-          {/* Free tutoring */}
+          {/* My mentor requests */}
+          {requests.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold text-foreground">My mentor requests</h2>
+              <div className="mt-4 space-y-3">
+                {requests.map((r) => {
+                  const matched = r.status === "matched";
+                  return (
+                    <div
+                      key={r.id}
+                      className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4 flex-wrap sm:flex-nowrap"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-[hsl(160,40%,88%)] flex items-center justify-center shrink-0">
+                        <Users className="h-6 w-6 text-emerald-700" />
+                      </div>
+                      <div className="flex-1 min-w-[180px]">
+                        <h4 className="font-semibold text-foreground">{r.field_of_interest}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted {new Date(r.created_at).toLocaleDateString()}
+                          {matched && r.matched_mentor_name ? ` · Mentor: ${r.matched_mentor_name}` : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={matched ? "default" : "secondary"}
+                        className={matched ? "bg-emerald-600 hover:bg-emerald-600" : ""}
+                      >
+                        {matched ? "Matched" : "Pending"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 flex items-center justify-between">
             <h2 className="text-xl font-bold text-foreground">Free tutoring near you</h2>
             <button className="text-sm font-medium text-orange-500 hover:text-orange-600">View all</button>
