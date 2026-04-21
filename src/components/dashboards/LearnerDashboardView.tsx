@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 import {
   Sparkles,
   Users,
@@ -126,15 +128,81 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
   const [mentorOpen, setMentorOpen] = useState(false);
   const [uniOpen, setUniOpen] = useState(false);
 
+  const [field, setField] = useState("");
+  const [grade, setGrade] = useState("");
+  const [goals, setGoals] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  type MentorRequest = {
+    id: string;
+    field_of_interest: string;
+    status: string;
+    matched_mentor_name: string | null;
+    created_at: string;
+  };
+  const [requests, setRequests] = useState<MentorRequest[]>([]);
+
+  const loadRequests = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("mentor_requests")
+      .select("id, field_of_interest, status, matched_mentor_name, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) setRequests(data);
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast.success("Signed out successfully");
     navigate("/auth");
   };
 
-  const handleMentorRequest = () => {
+  const mentorSchema = z.object({
+    field_of_interest: z.string().trim().min(2, "Field is required").max(100),
+    grade_level: z.string().trim().max(50).optional(),
+    goals: z.string().trim().max(1000).optional(),
+  });
+
+  const handleMentorRequest = async () => {
+    const parsed = mentorSchema.safeParse({
+      field_of_interest: field,
+      grade_level: grade,
+      goals,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    setSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Please sign in to submit a request");
+      setSubmitting(false);
+      return;
+    }
+    const { error } = await supabase.from("mentor_requests").insert({
+      user_id: user.id,
+      field_of_interest: parsed.data.field_of_interest,
+      grade_level: parsed.data.grade_level || null,
+      goals: parsed.data.goals || null,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setField("");
+    setGrade("");
+    setGoals("");
     setMentorOpen(false);
     toast.success("Mentor request sent! We'll match you within 48 hours.");
+    loadRequests();
   };
 
   const handleUniRequest = () => {
@@ -230,13 +298,29 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
-                  <Input placeholder="Field of interest (e.g. Engineering)" />
-                  <Input placeholder="Your grade / age" />
-                  <Textarea placeholder="What do you hope to learn from a mentor?" rows={4} />
+                  <Input
+                    placeholder="Field of interest (e.g. Engineering)"
+                    value={field}
+                    onChange={(e) => setField(e.target.value)}
+                    maxLength={100}
+                  />
+                  <Input
+                    placeholder="Your grade / age"
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    maxLength={50}
+                  />
+                  <Textarea
+                    placeholder="What do you hope to learn from a mentor?"
+                    rows={4}
+                    value={goals}
+                    onChange={(e) => setGoals(e.target.value)}
+                    maxLength={1000}
+                  />
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleMentorRequest}>
-                    <Send className="h-4 w-4" /> Send request
+                  <Button onClick={handleMentorRequest} disabled={submitting}>
+                    <Send className="h-4 w-4" /> {submitting ? "Sending..." : "Send request"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -278,7 +362,41 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
             </Dialog>
           </div>
 
-          {/* Free tutoring */}
+          {/* My mentor requests */}
+          {requests.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold text-foreground">My mentor requests</h2>
+              <div className="mt-4 space-y-3">
+                {requests.map((r) => {
+                  const matched = r.status === "matched";
+                  return (
+                    <div
+                      key={r.id}
+                      className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4 flex-wrap sm:flex-nowrap"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-[hsl(160,40%,88%)] flex items-center justify-center shrink-0">
+                        <Users className="h-6 w-6 text-emerald-700" />
+                      </div>
+                      <div className="flex-1 min-w-[180px]">
+                        <h4 className="font-semibold text-foreground">{r.field_of_interest}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted {new Date(r.created_at).toLocaleDateString()}
+                          {matched && r.matched_mentor_name ? ` · Mentor: ${r.matched_mentor_name}` : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={matched ? "default" : "secondary"}
+                        className={matched ? "bg-emerald-600 hover:bg-emerald-600" : ""}
+                      >
+                        {matched ? "Matched" : "Pending"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 flex items-center justify-between">
             <h2 className="text-xl font-bold text-foreground">Free tutoring near you</h2>
             <button className="text-sm font-medium text-orange-500 hover:text-orange-600">View all</button>
