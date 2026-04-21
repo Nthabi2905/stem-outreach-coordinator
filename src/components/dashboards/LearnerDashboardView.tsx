@@ -128,15 +128,81 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
   const [mentorOpen, setMentorOpen] = useState(false);
   const [uniOpen, setUniOpen] = useState(false);
 
+  const [field, setField] = useState("");
+  const [grade, setGrade] = useState("");
+  const [goals, setGoals] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  type MentorRequest = {
+    id: string;
+    field_of_interest: string;
+    status: string;
+    matched_mentor_name: string | null;
+    created_at: string;
+  };
+  const [requests, setRequests] = useState<MentorRequest[]>([]);
+
+  const loadRequests = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("mentor_requests")
+      .select("id, field_of_interest, status, matched_mentor_name, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error && data) setRequests(data);
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast.success("Signed out successfully");
     navigate("/auth");
   };
 
-  const handleMentorRequest = () => {
+  const mentorSchema = z.object({
+    field_of_interest: z.string().trim().min(2, "Field is required").max(100),
+    grade_level: z.string().trim().max(50).optional(),
+    goals: z.string().trim().max(1000).optional(),
+  });
+
+  const handleMentorRequest = async () => {
+    const parsed = mentorSchema.safeParse({
+      field_of_interest: field,
+      grade_level: grade,
+      goals,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    setSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Please sign in to submit a request");
+      setSubmitting(false);
+      return;
+    }
+    const { error } = await supabase.from("mentor_requests").insert({
+      user_id: user.id,
+      field_of_interest: parsed.data.field_of_interest,
+      grade_level: parsed.data.grade_level || null,
+      goals: parsed.data.goals || null,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setField("");
+    setGrade("");
+    setGoals("");
     setMentorOpen(false);
     toast.success("Mentor request sent! We'll match you within 48 hours.");
+    loadRequests();
   };
 
   const handleUniRequest = () => {
