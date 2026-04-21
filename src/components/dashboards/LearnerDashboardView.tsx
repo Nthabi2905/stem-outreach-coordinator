@@ -298,13 +298,29 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
-                  <Input placeholder="Field of interest (e.g. Engineering)" />
-                  <Input placeholder="Your grade / age" />
-                  <Textarea placeholder="What do you hope to learn from a mentor?" rows={4} />
+                  <Input
+                    placeholder="Field of interest (e.g. Engineering)"
+                    value={field}
+                    onChange={(e) => setField(e.target.value)}
+                    maxLength={100}
+                  />
+                  <Input
+                    placeholder="Your grade / age"
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    maxLength={50}
+                  />
+                  <Textarea
+                    placeholder="What do you hope to learn from a mentor?"
+                    rows={4}
+                    value={goals}
+                    onChange={(e) => setGoals(e.target.value)}
+                    maxLength={1000}
+                  />
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleMentorRequest}>
-                    <Send className="h-4 w-4" /> Send request
+                  <Button onClick={handleMentorRequest} disabled={submitting}>
+                    <Send className="h-4 w-4" /> {submitting ? "Sending..." : "Send request"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
