@@ -138,6 +138,12 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
     field_of_interest: string;
     status: string;
     matched_mentor_name: string | null;
+    matched_mentor_email: string | null;
+    matched_mentor_role: string | null;
+    matched_mentor_organization: string | null;
+    matched_mentor_bio: string | null;
+    matched_mentor_linkedin: string | null;
+    contact_instructions: string | null;
     created_at: string;
   };
   const [requests, setRequests] = useState<MentorRequest[]>([]);
@@ -147,7 +153,9 @@ export const LearnerDashboardView = ({ userEmail, userName }: LearnerDashboardVi
     if (!user) return;
     const { data, error } = await supabase
       .from("mentor_requests")
-      .select("id, field_of_interest, status, matched_mentor_name, created_at")
+      .select(
+        "id, field_of_interest, status, matched_mentor_name, matched_mentor_email, matched_mentor_role, matched_mentor_organization, matched_mentor_bio, matched_mentor_linkedin, contact_instructions, created_at"
+      )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setRequests(data);
