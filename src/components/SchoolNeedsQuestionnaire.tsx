@@ -11,7 +11,7 @@ import { toast } from "sonner";
 const PROVINCES = ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "Northern Cape", "North West", "Western Cape"];
 const SUBJECTS = ["Mathematics", "Physical Sciences", "Life Sciences", "Technology", "Engineering", "Coding/Programming", "Robotics", "Space Science"];
 const TOPICS = ["Career Guidance", "Hands-on Workshops", "Lab Equipment", "Guest Speakers", "Field Trips", "Online Resources", "Mentorship Programs"];
-const GRADES = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
+const GRADES = ["Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
 
 export const SchoolNeedsQuestionnaire = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
