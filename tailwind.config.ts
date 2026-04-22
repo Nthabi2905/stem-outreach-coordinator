@@ -55,6 +55,7 @@ export default {
         'gradient-primary': 'var(--gradient-primary)',
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-subtle': 'var(--gradient-subtle)',
+        'gradient-rainbow': 'var(--gradient-rainbow)',
       },
       boxShadow: {
         'sm': 'var(--shadow-sm)',
