@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Target, Users, Rocket, ArrowRight } from "lucide-react";
+import { Target, Users, Rocket, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const Hero = () => {
   return (
@@ -16,9 +17,7 @@ const Hero = () => {
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-24 text-center">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <GraduationCap className="w-10 h-10 text-primary-foreground" />
-          </div>
+          <img src={logo} alt="EduReach AI" className="w-32 h-32 object-contain drop-shadow-xl animate-float" />
         </div>
 
         {/* Badge */}
@@ -32,7 +31,7 @@ const Hero = () => {
         <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
           Connect Schools with
           <br />
-          <span className="text-primary">
+          <span className="bg-gradient-hero bg-clip-text text-transparent">
             Space & STEM Education
           </span>
         </h1>
