@@ -57,7 +57,7 @@ const Hero = () => {
               variant="outline"
               className="border-border text-foreground hover:bg-muted"
             >
-              Learn More
+              Partner with Us
             </Button>
           </Link>
         </div>
