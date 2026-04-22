@@ -29,14 +29,14 @@ const Navbar = () => {
 
   const publicLinks = [
     { label: "Home", to: "/" },
-    { label: "Questionnaires", to: "/questionnaires" },
+    { label: "Partner with Us", to: "/questionnaires" },
   ];
 
   const authLinks = [
     { label: "Dashboard", to: "/" },
     { label: "Campaigns", to: "/campaigns" },
     { label: "Planning", to: "/planning" },
-    { label: "Questionnaires", to: "/questionnaires" },
+    { label: "Partner with Us", to: "/questionnaires" },
   ];
 
   const links = user ? authLinks : publicLinks;
