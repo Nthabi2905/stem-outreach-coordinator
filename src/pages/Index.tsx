@@ -6,6 +6,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
+import StakeholderSolutions from "@/components/StakeholderSolutions";
 import { SchoolRequestForm } from "@/components/SchoolRequestForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminDashboardView } from "@/components/dashboards/AdminDashboardView";
