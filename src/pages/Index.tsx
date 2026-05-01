@@ -6,6 +6,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
+import StakeholderSolutions from "@/components/StakeholderSolutions";
 import { SchoolRequestForm } from "@/components/SchoolRequestForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminDashboardView } from "@/components/dashboards/AdminDashboardView";
@@ -105,6 +106,7 @@ const Index = () => {
     return (
       <div className="min-h-screen">
         <Hero />
+        <StakeholderSolutions />
         <section className="py-12 px-6">
           <Tabs defaultValue="request" className="max-w-4xl mx-auto">
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
