@@ -28,8 +28,11 @@ const Navbar = () => {
   };
 
   const publicLinks = [
-    { label: "Home", to: "/" },
-    { label: "Partner with Us", to: "/questionnaires" },
+    { label: "How It Works", to: "/#how-it-works" },
+    { label: "Solutions", to: "/#solutions" },
+    { label: "Impact", to: "/#impact" },
+    { label: "Resources", to: "/#resources" },
+    { label: "About Us", to: "/#about" },
   ];
 
   const authLinks = [
@@ -74,9 +77,18 @@ const Navbar = () => {
                 Sign Out
               </Button>
             ) : (
-              <Link to="/auth">
-                <Button size="sm">Sign In</Button>
-              </Link>
+              <>
+                <Link to="/auth">
+                  <Button variant="outline" size="sm" className="border-secondary/40 text-secondary hover:bg-secondary/5">
+                    Log In
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
 
