@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Hero from "@/components/Hero";
 import FeatureHighlights from "@/components/FeatureHighlights";
-import StakeholderSolutions from "@/components/StakeholderSolutions";
 import { SchoolRequestForm } from "@/components/SchoolRequestForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminDashboardView } from "@/components/dashboards/AdminDashboardView";
@@ -108,7 +107,6 @@ const Index = () => {
       <div className="min-h-screen">
         <Hero />
         <FeatureHighlights />
-        <StakeholderSolutions />
         <section className="py-12 px-6">
           <Tabs defaultValue="request" className="max-w-4xl mx-auto">
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">

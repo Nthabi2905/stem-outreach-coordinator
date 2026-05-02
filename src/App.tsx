@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PlanningTool from "./pages/PlanningTool";
 import Campaigns from "./pages/Campaigns";
 import HowItWorks from "./pages/HowItWorks";
+import Solutions from "./pages/Solutions";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/solutions" element={<Solutions />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="/admin/responses" element={<AdminDashboard />} />
