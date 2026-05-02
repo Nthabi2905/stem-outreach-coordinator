@@ -47,6 +47,15 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        logo: {
+          blue: "hsl(var(--logo-blue))",
+          teal: "hsl(var(--logo-teal))",
+          purple: "hsl(var(--logo-purple))",
+          pink: "hsl(var(--logo-pink))",
+          orange: "hsl(var(--logo-orange))",
+          yellow: "hsl(var(--logo-yellow))",
+          navy: "hsl(var(--logo-navy))",
+        },
       },
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
