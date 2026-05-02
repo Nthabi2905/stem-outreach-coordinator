@@ -69,10 +69,10 @@ const FeatureHighlights = () => {
             {features.map((f) => (
               <div key={f.num} className="group">
                 <div className="relative mb-4 inline-block">
-                  <div className={`w-14 h-14 rounded-2xl bg-${f.color}/10 flex items-center justify-center`}>
-                    <f.icon className={`w-7 h-7 text-${f.color}`} />
+                  <div className={`w-14 h-14 rounded-2xl ${f.iconBg} flex items-center justify-center`}>
+                    <f.icon className={`w-7 h-7 ${f.iconText}`} />
                   </div>
-                  <span className={`absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-${f.color} text-white text-xs font-bold flex items-center justify-center shadow-md`}>
+                  <span className={`absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full ${f.badge} text-white text-xs font-bold flex items-center justify-center shadow-md`}>
                     {f.num}
                   </span>
                 </div>
