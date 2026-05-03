@@ -14,6 +14,7 @@ import PlanningTool from "./pages/PlanningTool";
 import Campaigns from "./pages/Campaigns";
 import HowItWorks from "./pages/HowItWorks";
 import Solutions from "./pages/Solutions";
+import Impact from "./pages/Impact";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/solutions" element={<Solutions />} />
+          <Route path="/impact" element={<Impact />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="/admin/responses" element={<AdminDashboard />} />

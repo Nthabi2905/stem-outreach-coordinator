@@ -30,7 +30,7 @@ const Navbar = () => {
   const publicLinks = [
     { label: "How It Works", to: "/how-it-works" },
     { label: "Solutions", to: "/solutions" },
-    { label: "Impact", to: "/#impact" },
+    { label: "Impact", to: "/impact" },
     { label: "Resources", to: "/#resources" },
     { label: "About Us", to: "/#about" },
   ];
