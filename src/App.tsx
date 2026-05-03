@@ -16,6 +16,7 @@ import HowItWorks from "./pages/HowItWorks";
 import Solutions from "./pages/Solutions";
 import Impact from "./pages/Impact";
 import Resources from "./pages/Resources";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/solutions" element={<Solutions />} />
           <Route path="/impact" element={<Impact />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/about" element={<About />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/questionnaires" element={<Questionnaires />} />
           <Route path="/admin/responses" element={<AdminDashboard />} />

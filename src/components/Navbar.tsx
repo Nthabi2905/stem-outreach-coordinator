@@ -32,7 +32,7 @@ const Navbar = () => {
     { label: "Solutions", to: "/solutions" },
     { label: "Impact", to: "/impact" },
     { label: "Resources", to: "/resources" },
-    { label: "About Us", to: "/#about" },
+    { label: "About Us", to: "/about" },
   ];
 
   const authLinks = [
