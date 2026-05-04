@@ -500,7 +500,7 @@ const AdminDashboard = () => {
                 <div className="text-2xl font-extrabold text-foreground mb-1">{k.value}</div>
                 <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
                   <ArrowUp className="w-3 h-3" />
-                  {k.trend} from last week
+                  {k.trend}
                 </div>
               </div>
             ))}
