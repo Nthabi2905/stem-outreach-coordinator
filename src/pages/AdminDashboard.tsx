@@ -656,10 +656,10 @@ const AdminDashboard = () => {
               <h3 className="text-sm font-bold text-foreground mb-4">Impact at a Glance</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: GraduationCap, label: "Learners Reached", value: "245,780", sub: "+26,540 this month", tint: "bg-logo-teal/10 text-logo-teal" },
-                  { icon: SchoolIcon, label: "Underserved Schools", value: "1,284", sub: "+143 this month", tint: "bg-logo-purple/10 text-logo-purple" },
-                  { icon: Download, label: "Workshops Delivered", value: "158", sub: "+21 this month", tint: "bg-logo-orange/10 text-logo-orange" },
-                  { icon: Building2, label: "Provinces Covered", value: "9 / 9", sub: "Nationwide", tint: "bg-logo-blue/10 text-logo-blue" },
+                  { icon: GraduationCap, label: "Learners Reached", value: impactStats.learnersReached.toLocaleString(), sub: `${provinceData.length} provinces`, tint: "bg-logo-teal/10 text-logo-teal" },
+                  { icon: SchoolIcon, label: "Underserved Schools", value: impactStats.underservedSchools.toLocaleString(), sub: "Q1–Q2 schools", tint: "bg-logo-purple/10 text-logo-purple" },
+                  { icon: Download, label: "Workshops Delivered", value: impactStats.workshopsDelivered.toLocaleString(), sub: "Completed campaigns", tint: "bg-logo-orange/10 text-logo-orange" },
+                  { icon: Building2, label: "Provinces Covered", value: `${impactStats.provincesCovered} / 9`, sub: impactStats.provincesCovered === 9 ? "Nationwide" : "In progress", tint: "bg-logo-blue/10 text-logo-blue" },
                 ].map((s) => (
                   <div key={s.label} className="bg-secondary/40 rounded-xl p-3">
                     <div className={`w-8 h-8 rounded-lg ${s.tint} flex items-center justify-center mb-2`}>
