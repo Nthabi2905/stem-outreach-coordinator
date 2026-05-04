@@ -539,14 +539,11 @@ const AdminDashboard = () => {
                 {points.map((p, i) => (
                   <circle key={i} cx={p.x} cy={p.y} r="3" fill="hsl(var(--logo-blue))" />
                 ))}
-                {["May 1", "May 5", "May 9", "May 13", "May 17"].map((lbl, i, arr) => {
-                  const x = pad + (i / (arr.length - 1)) * (w - pad * 2);
-                  return (
-                    <text key={lbl} x={x} y={h - 4} fontSize="9" fill="hsl(var(--muted-foreground))" textAnchor="middle">
-                      {lbl}
-                    </text>
-                  );
-                })}
+                {points.length > 0 && [points[0], points[Math.floor(points.length / 4)], points[Math.floor(points.length / 2)], points[Math.floor((points.length * 3) / 4)], points[points.length - 1]].map((p, i) => (
+                  <text key={i} x={p.x} y={h - 4} fontSize="9" fill="hsl(var(--muted-foreground))" textAnchor="middle">
+                    {p.raw.label}
+                  </text>
+                ))}
               </svg>
               <div className="flex items-center justify-center gap-2 mt-2">
                 <span className="w-2 h-2 rounded-full bg-logo-blue" />
