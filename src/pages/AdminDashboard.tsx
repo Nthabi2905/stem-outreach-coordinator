@@ -37,6 +37,7 @@ import { QuestionnaireResponsesTable } from "@/components/QuestionnaireResponses
 import { UserRoleManagement } from "@/components/UserRoleManagement";
 import { OrganizationManagement } from "@/components/OrganizationManagement";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
