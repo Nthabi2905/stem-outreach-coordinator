@@ -561,12 +561,15 @@ const AdminDashboard = () => {
                     style={{ background: `conic-gradient(${conicStops})` }}
                   />
                   <div className="absolute inset-3 rounded-full bg-card flex flex-col items-center justify-center">
-                    <div className="text-lg font-extrabold text-foreground">245,780</div>
+                    <div className="text-lg font-extrabold text-foreground">{totalLearners.toLocaleString()}</div>
                     <div className="text-[10px] text-muted-foreground">Total</div>
                   </div>
                 </div>
                 <div className="flex-1 space-y-1.5">
-                  {provinces.map((p) => (
+                  {provinceData.length === 0 && (
+                    <div className="text-xs text-muted-foreground">No province data yet</div>
+                  )}
+                  {provinceData.map((p) => (
                     <div key={p.name} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
