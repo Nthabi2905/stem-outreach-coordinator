@@ -93,6 +93,25 @@ const AdminDashboard = () => {
   const [active, setActive] = useState("dashboard");
   const [showAnnouncement, setShowAnnouncement] = useState(true);
 
+  const [kpis, setKpis] = useState<KPI[]>([
+    { icon: UsersIcon, label: "Total Learners", value: "—", trend: "—", tint: "bg-logo-teal/10 text-logo-teal" },
+    { icon: SchoolIcon, label: "Schools & Orgs", value: "—", trend: "—", tint: "bg-logo-purple/10 text-logo-purple" },
+    { icon: BarChart3, label: "Outreach Activities", value: "—", trend: "—", tint: "bg-logo-blue/10 text-logo-blue" },
+    { icon: Handshake, label: "Partners", value: "—", trend: "—", tint: "bg-logo-orange/10 text-logo-orange" },
+    { icon: Download, label: "Questionnaire Responses", value: "—", trend: "—", tint: "bg-logo-teal/10 text-logo-teal" },
+  ]);
+  const [provinceData, setProvinceData] = useState<ProvinceSlice[]>([]);
+  const [totalLearners, setTotalLearners] = useState(0);
+  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
+  const [engagementSeries, setEngagementSeries] = useState<{ x: number; y: number; label: string }[]>([]);
+  const [programs, setPrograms] = useState<{ name: string; current: number; total: number; percent: number; color: string }[]>([]);
+  const [impactStats, setImpactStats] = useState({
+    learnersReached: 0,
+    underservedSchools: 0,
+    workshopsDelivered: 0,
+    provincesCovered: 0,
+  });
+
   useEffect(() => {
     checkAdminAccess();
   }, []);
@@ -113,12 +132,188 @@ const AdminDashboard = () => {
         return;
       }
       setIsAdmin(true);
+      await loadDashboardData();
     } catch (error: any) {
       console.error("Error checking admin access:", error);
       toast.error("Failed to verify access permissions");
       navigate("/");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadDashboardData = async () => {
+    try {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [
+        schoolsRes,
+        orgsRes,
+        campaignsRes,
+        questionnairesRes,
+        recentCampaignsRes,
+        recentQuestionnairesRes,
+        recentOutreachRes,
+        prevCampaignsRes,
+        prevQuestionnairesRes,
+      ] = await Promise.all([
+        supabase.from("schools").select("id, province, learners_2024, quintile", { count: "exact" }),
+        supabase.from("organizations").select("id, name, created_at", { count: "exact" }),
+        supabase.from("outreach_campaigns").select("id, status, created_at, province, district, school_type", { count: "exact" }),
+        supabase.from("questionnaire_responses").select("id, organization_name, questionnaire_type, created_at", { count: "exact" }),
+        supabase.from("outreach_campaigns").select("id, school_type, district, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("questionnaire_responses").select("id, organization_name, questionnaire_type, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("outreach_requests").select("id, school_name, outreach_type, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("outreach_campaigns").select("id", { count: "exact", head: true }).lt("created_at", weekAgo).gte("created_at", twoWeeksAgo),
+        supabase.from("questionnaire_responses").select("id", { count: "exact", head: true }).lt("created_at", weekAgo).gte("created_at", twoWeeksAgo),
+      ]);
+
+      const schools = schoolsRes.data || [];
+      const orgs = orgsRes.data || [];
+      const campaigns = campaignsRes.data || [];
+      const questionnaires = questionnairesRes.data || [];
+
+      const learnerSum = schools.reduce((acc, s: any) => acc + (s.learners_2024 || 0), 0);
+      setTotalLearners(learnerSum);
+
+      const trendStr = (curr: number, prev: number) => {
+        if (!prev) return curr > 0 ? "+100%" : "0%";
+        const pct = ((curr - prev) / prev) * 100;
+        return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
+      };
+
+      const campaignsLastWeek = campaigns.filter((c: any) => c.created_at >= weekAgo).length;
+      const questionnairesLastWeek = questionnaires.filter((q: any) => q.created_at >= weekAgo).length;
+
+      setKpis([
+        { icon: UsersIcon, label: "Total Learners", value: learnerSum.toLocaleString(), trend: `${schools.length} schools`, tint: "bg-logo-teal/10 text-logo-teal" },
+        { icon: SchoolIcon, label: "Schools & Orgs", value: ((schoolsRes.count || 0) + (orgsRes.count || 0)).toLocaleString(), trend: `${orgsRes.count || 0} orgs`, tint: "bg-logo-purple/10 text-logo-purple" },
+        { icon: BarChart3, label: "Outreach Activities", value: (campaignsRes.count || 0).toLocaleString(), trend: trendStr(campaignsLastWeek, prevCampaignsRes.count || 0), tint: "bg-logo-blue/10 text-logo-blue" },
+        { icon: Handshake, label: "Partners", value: (orgsRes.count || 0).toLocaleString(), trend: `${orgs.filter((o: any) => o.created_at >= weekAgo).length} new`, tint: "bg-logo-orange/10 text-logo-orange" },
+        { icon: Download, label: "Questionnaire Responses", value: (questionnairesRes.count || 0).toLocaleString(), trend: trendStr(questionnairesLastWeek, prevQuestionnairesRes.count || 0), tint: "bg-logo-teal/10 text-logo-teal" },
+      ]);
+
+      // Province distribution by learner count
+      const byProvince: Record<string, number> = {};
+      schools.forEach((s: any) => {
+        if (!s.province) return;
+        byProvince[s.province] = (byProvince[s.province] || 0) + (s.learners_2024 || 0);
+      });
+      const sorted = Object.entries(byProvince).sort((a, b) => b[1] - a[1]);
+      const top = sorted.slice(0, 5);
+      const othersTotal = sorted.slice(5).reduce((acc, [, v]) => acc + v, 0);
+      const totalProv = sorted.reduce((acc, [, v]) => acc + v, 0) || 1;
+      const slices: ProvinceSlice[] = top.map(([name, count], i) => ({
+        name,
+        count,
+        value: Math.round((count / totalProv) * 1000) / 10,
+        color: PROVINCE_COLORS[i],
+      }));
+      if (othersTotal > 0) {
+        slices.push({
+          name: "Others",
+          count: othersTotal,
+          value: Math.round((othersTotal / totalProv) * 1000) / 10,
+          color: PROVINCE_COLORS[5],
+        });
+      }
+      setProvinceData(slices);
+
+      const provincesCovered = new Set(
+        campaigns.filter((c: any) => c.status !== "draft").map((c: any) => c.province).filter(Boolean)
+      ).size;
+      const underserved = schools.filter((s: any) => s.quintile && parseInt(s.quintile) <= 2).length;
+      const workshopsDelivered = campaigns.filter((c: any) => c.status === "completed").length;
+      setImpactStats({
+        learnersReached: learnerSum,
+        underservedSchools: underserved,
+        workshopsDelivered,
+        provincesCovered,
+      });
+
+      // Engagement: questionnaire responses per week (last 9 weeks)
+      const weeks = 9;
+      const series: { x: number; y: number; label: string }[] = [];
+      for (let i = weeks - 1; i >= 0; i--) {
+        const start = new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+        const end = new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000);
+        const count = questionnaires.filter((q: any) => {
+          const d = new Date(q.created_at);
+          return d >= start && d < end;
+        }).length;
+        series.push({
+          x: weeks - 1 - i,
+          y: count,
+          label: start.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        });
+      }
+      setEngagementSeries(series);
+
+      // Programs: campaigns grouped by school_type
+      const byType: Record<string, number> = {};
+      campaigns.forEach((c: any) => {
+        const t = c.school_type || "Other";
+        byType[t] = (byType[t] || 0) + 1;
+      });
+      const totalC = campaigns.length || 1;
+      const colors = ["bg-logo-blue", "bg-logo-teal", "bg-logo-purple", "bg-logo-orange"];
+      const progs = Object.entries(byType)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([name, count], i) => ({
+          name,
+          current: count,
+          total: totalC,
+          percent: Math.round((count / totalC) * 100),
+          color: colors[i % colors.length],
+        }));
+      setPrograms(progs);
+
+      // Recent activities
+      type Raw = { date: string; item: ActivityItem };
+      const acts: Raw[] = [];
+      (recentCampaignsRes.data || []).forEach((c: any) => {
+        acts.push({
+          date: c.created_at,
+          item: {
+            icon: Activity,
+            title: "New outreach activity",
+            desc: `${c.school_type || "Campaign"}${c.district ? ` – ${c.district}` : ""}`,
+            time: formatDistanceToNow(new Date(c.created_at), { addSuffix: true }),
+            tint: "bg-logo-purple/10 text-logo-purple",
+          },
+        });
+      });
+      (recentQuestionnairesRes.data || []).forEach((q: any) => {
+        acts.push({
+          date: q.created_at,
+          item: {
+            icon: ClipboardList,
+            title: q.questionnaire_type === "school_needs" ? "School needs submitted" : "Company offering submitted",
+            desc: q.organization_name,
+            time: formatDistanceToNow(new Date(q.created_at), { addSuffix: true }),
+            tint: "bg-logo-teal/10 text-logo-teal",
+          },
+        });
+      });
+      (recentOutreachRes.data || []).forEach((r: any) => {
+        acts.push({
+          date: r.created_at,
+          item: {
+            icon: SchoolIcon,
+            title: "Outreach request",
+            desc: `${r.school_name} – ${r.outreach_type}`,
+            time: formatDistanceToNow(new Date(r.created_at), { addSuffix: true }),
+            tint: "bg-logo-orange/10 text-logo-orange",
+          },
+        });
+      });
+      acts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setRecentActivities(acts.slice(0, 5).map((a) => a.item));
+    } catch (err: any) {
+      console.error("Error loading dashboard data:", err);
+      toast.error("Failed to load dashboard data");
     }
   };
 
@@ -139,24 +334,30 @@ const AdminDashboard = () => {
 
   // Build SVG path for engagement chart
   const w = 600, h = 180, pad = 20;
-  const maxY = 100;
-  const points = engagementPoints.map((p) => {
-    const x = pad + (p.x / (engagementPoints.length - 1)) * (w - pad * 2);
-    const y = h - pad - (p.y / maxY) * (h - pad * 2);
-    return { x, y, raw: p };
-  });
+  const maxY = Math.max(10, ...engagementSeries.map((p) => p.y)) * 1.2;
+  const points = engagementSeries.length > 0
+    ? engagementSeries.map((p) => {
+        const x = pad + (p.x / Math.max(1, engagementSeries.length - 1)) * (w - pad * 2);
+        const y = h - pad - (p.y / maxY) * (h - pad * 2);
+        return { x, y, raw: p };
+      })
+    : [];
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${h - pad} L ${points[0].x} ${h - pad} Z`;
+  const areaPath = points.length > 0
+    ? `${linePath} L ${points[points.length - 1].x} ${h - pad} L ${points[0].x} ${h - pad} Z`
+    : "";
 
   // Donut conic gradient
   let acc = 0;
-  const conicStops = provinces
-    .map((p) => {
-      const start = acc;
-      acc += p.value;
-      return `${p.color} ${start}% ${acc}%`;
-    })
-    .join(", ");
+  const conicStops = provinceData.length > 0
+    ? provinceData
+        .map((p) => {
+          const start = acc;
+          acc += p.value;
+          return `${p.color} ${start}% ${acc}%`;
+        })
+        .join(", ")
+    : "hsl(var(--muted)) 0% 100%";
 
   return (
     <div className="min-h-screen bg-secondary/30 flex">
