@@ -54,43 +54,37 @@ const sidebarItems = [
   { icon: FileText, label: "System Logs", key: "logs" },
 ];
 
-const kpis = [
-  { icon: UsersIcon, label: "Total Learners", value: "245,780", trend: "12.5%", tint: "bg-logo-teal/10 text-logo-teal" },
-  { icon: SchoolIcon, label: "Schools & Orgs", value: "3,412", trend: "8.2%", tint: "bg-logo-purple/10 text-logo-purple" },
-  { icon: BarChart3, label: "Outreach Activities", value: "158", trend: "15.3%", tint: "bg-logo-blue/10 text-logo-blue" },
-  { icon: Handshake, label: "Partners", value: "312", trend: "6.7%", tint: "bg-logo-orange/10 text-logo-orange" },
-  { icon: Download, label: "Resources Downloaded", value: "12,845", trend: "18.9%", tint: "bg-logo-teal/10 text-logo-teal" },
+const PROVINCE_COLORS = [
+  "hsl(var(--logo-blue))",
+  "hsl(var(--logo-teal))",
+  "hsl(var(--logo-purple))",
+  "hsl(var(--logo-orange))",
+  "hsl(var(--logo-teal))",
+  "hsl(var(--muted-foreground) / 0.5)",
 ];
 
-const provinces = [
-  { name: "Gauteng", value: 30.2, color: "hsl(var(--logo-blue))" },
-  { name: "Western Cape", value: 18.6, color: "hsl(var(--logo-teal))" },
-  { name: "KwaZulu-Natal", value: 16.3, color: "hsl(var(--logo-purple))" },
-  { name: "Eastern Cape", value: 12.4, color: "hsl(var(--logo-orange))" },
-  { name: "Limpopo", value: 8.7, color: "hsl(var(--logo-teal))" },
-  { name: "Others", value: 13.8, color: "hsl(var(--muted-foreground) / 0.5)" },
-];
+interface KPI {
+  icon: any;
+  label: string;
+  value: string;
+  trend: string;
+  tint: string;
+}
 
-const recentActivities = [
-  { icon: SchoolIcon, title: "Somerset College Saturday School", desc: "Joined the platform", time: "2h ago", tint: "bg-logo-teal/10 text-logo-teal" },
-  { icon: UsersIcon, title: "New outreach activity created", desc: "Robotics Workshop – Soweto", time: "5h ago", tint: "bg-logo-purple/10 text-logo-purple" },
-  { icon: Download, title: "Resource downloaded", desc: "STEM Outreach Toolkit", time: "1d ago", tint: "bg-logo-orange/10 text-logo-orange" },
-  { icon: UsersIcon, title: "New user registered", desc: "Thandi M. – Teacher", time: "1d ago", tint: "bg-logo-blue/10 text-logo-blue" },
-  { icon: Calendar, title: "Webinar scheduled", desc: "Engaging Learners in STEM", time: "2d ago", tint: "bg-logo-teal/10 text-logo-teal" },
-];
+interface ProvinceSlice {
+  name: string;
+  value: number;
+  color: string;
+  count: number;
+}
 
-const programs = [
-  { name: "STEM Saturday School Program", current: 1245, total: 2000, percent: 62, color: "bg-logo-blue" },
-  { name: "Coding & Robotics Clubs", current: 850, total: 1500, percent: 57, color: "bg-logo-teal" },
-  { name: "Space Science Outreach", current: 1102, total: 1800, percent: 61, color: "bg-logo-purple" },
-  { name: "Teacher Capacity Building", current: 420, total: 800, percent: 53, color: "bg-logo-orange" },
-];
-
-const engagementPoints = [
-  { x: 0, y: 65 }, { x: 1, y: 55 }, { x: 2, y: 70 }, { x: 3, y: 50 },
-  { x: 4, y: 80 }, { x: 5, y: 75 }, { x: 6, y: 95 }, { x: 7, y: 85 },
-  { x: 8, y: 90 },
-];
+interface ActivityItem {
+  icon: any;
+  title: string;
+  desc: string;
+  time: string;
+  tint: string;
+}
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
