@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, School, BookOpen, Bot, FlaskConical, GraduationCap, Users } from "lucide-react";
 import { z } from "zod";
+import { SchoolSelector } from "./SchoolSelector";
 
 const requestSchema = z.object({
   schoolName: z.string().trim().min(1, "School name is required").max(200, "School name must be less than 200 characters"),
