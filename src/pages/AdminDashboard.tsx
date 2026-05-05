@@ -189,10 +189,26 @@ const AdminDashboard = () => {
 
       setKpis([
         { icon: UsersIcon, label: "Total Learners", value: learnerSum.toLocaleString(), trend: `${schools.length} schools`, tint: "bg-logo-teal/10 text-logo-teal" },
-        { icon: SchoolIcon, label: "Schools & Orgs", value: ((schoolsRes.count || 0) + (orgsRes.count || 0)).toLocaleString(), trend: `${orgsRes.count || 0} orgs`, tint: "bg-logo-purple/10 text-logo-purple" },
+        { icon: SchoolIcon, label: "Total Schools", value: (schoolsRes.count || 0).toLocaleString(), trend: `${orgsRes.count || 0} orgs`, tint: "bg-logo-purple/10 text-logo-purple" },
         { icon: BarChart3, label: "Outreach Activities", value: (campaignsRes.count || 0).toLocaleString(), trend: trendStr(campaignsLastWeek, prevCampaignsRes.count || 0), tint: "bg-logo-blue/10 text-logo-blue" },
         { icon: Handshake, label: "Partners", value: (orgsRes.count || 0).toLocaleString(), trend: `${orgs.filter((o: any) => o.created_at >= weekAgo).length} new`, tint: "bg-logo-orange/10 text-logo-orange" },
         { icon: Download, label: "Questionnaire Responses", value: (questionnairesRes.count || 0).toLocaleString(), trend: trendStr(questionnairesLastWeek, prevQuestionnairesRes.count || 0), tint: "bg-logo-teal/10 text-logo-teal" },
+      ]);
+
+      // Quintile breakdown
+      const qTally: Record<string, number> = { Q1: 0, Q2: 0, Q3: 0, Q4: 0, Q5: 0, Other: 0 };
+      schools.forEach((s: any) => {
+        const q = s.quintile;
+        if (q && qTally[q] !== undefined) qTally[q]++;
+        else qTally.Other++;
+      });
+      setQuintileBreakdown([
+        { key: "Q1", label: "Most underserved", count: qTally.Q1, tint: "bg-rose-500/10 text-rose-700" },
+        { key: "Q2", label: "Underserved", count: qTally.Q2, tint: "bg-orange-500/10 text-orange-700" },
+        { key: "Q3", label: "Mid-tier", count: qTally.Q3, tint: "bg-amber-500/10 text-amber-700" },
+        { key: "Q4", label: "Better-resourced", count: qTally.Q4, tint: "bg-emerald-500/10 text-emerald-700" },
+        { key: "Q5", label: "Least disadvantaged", count: qTally.Q5, tint: "bg-sky-500/10 text-sky-700" },
+        { key: "Other", label: "Unspecified", count: qTally.Other, tint: "bg-secondary text-foreground" },
       ]);
 
       // Province distribution by learner count
