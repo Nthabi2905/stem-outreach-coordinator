@@ -34,6 +34,7 @@ const OUTREACH_TYPES = [
 export const SchoolRequestForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<any>(null);
   const [formData, setFormData] = useState({
     schoolName: "",
     contactPerson: "",
