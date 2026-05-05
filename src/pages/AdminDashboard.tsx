@@ -95,7 +95,7 @@ const AdminDashboard = () => {
 
   const [kpis, setKpis] = useState<KPI[]>([
     { icon: UsersIcon, label: "Total Learners", value: "—", trend: "—", tint: "bg-logo-teal/10 text-logo-teal" },
-    { icon: SchoolIcon, label: "Schools & Orgs", value: "—", trend: "—", tint: "bg-logo-purple/10 text-logo-purple" },
+    { icon: SchoolIcon, label: "Total Schools", value: "—", trend: "—", tint: "bg-logo-purple/10 text-logo-purple" },
     { icon: BarChart3, label: "Outreach Activities", value: "—", trend: "—", tint: "bg-logo-blue/10 text-logo-blue" },
     { icon: Handshake, label: "Partners", value: "—", trend: "—", tint: "bg-logo-orange/10 text-logo-orange" },
     { icon: Download, label: "Questionnaire Responses", value: "—", trend: "—", tint: "bg-logo-teal/10 text-logo-teal" },
@@ -105,6 +105,7 @@ const AdminDashboard = () => {
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
   const [engagementSeries, setEngagementSeries] = useState<{ x: number; y: number; label: string }[]>([]);
   const [programs, setPrograms] = useState<{ name: string; current: number; total: number; percent: number; color: string }[]>([]);
+  const [quintileBreakdown, setQuintileBreakdown] = useState<{ key: string; label: string; count: number; tint: string }[]>([]);
   const [impactStats, setImpactStats] = useState({
     learnersReached: 0,
     underservedSchools: 0,
