@@ -171,14 +171,24 @@ export const SchoolRequestForm = () => {
               <School className="h-5 w-5 text-primary" />
               School Information
             </h3>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="schoolName">School Name *</Label>
+              <Label>Find your school *</Label>
+              <SchoolSelector
+                value={selectedSchool}
+                onSelect={(s) => {
+                  setSelectedSchool(s);
+                  setFormData({ ...formData, schoolName: s.institution_name });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Search the official school list. If your school isn't listed, type the name below.
+              </p>
               <Input
                 id="schoolName"
                 value={formData.schoolName}
                 onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                placeholder="e.g., Soweto High School"
+                placeholder="School name"
                 required
                 maxLength={200}
               />
