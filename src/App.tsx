@@ -17,6 +17,7 @@ import Solutions from "./pages/Solutions";
 import Impact from "./pages/Impact";
 import Resources from "./pages/Resources";
 import About from "./pages/About";
+import Schools from "./pages/Schools";
 
 const queryClient = new QueryClient();
 
