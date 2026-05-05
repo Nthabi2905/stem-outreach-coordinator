@@ -137,12 +137,7 @@ const Index = () => {
 
   // Admin role
   if (isAdmin || userRole === 'admin') {
-    return (
-      <AdminDashboardView 
-        userEmail={user.email || ""} 
-        userName={userName}
-      />
-    );
+    return <AdminDashboard />;
   }
 
   // Organization role
