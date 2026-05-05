@@ -723,6 +723,37 @@ const AdminDashboard = () => {
             </div>
           </div>
 
+          {/* Schools by Quintile */}
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Schools by Quintile</h3>
+                <p className="text-xs text-muted-foreground">South African school equity tiers (Q1 = most underserved).</p>
+              </div>
+              <button
+                onClick={() => navigate("/schools")}
+                className="text-xs font-semibold text-logo-blue hover:underline inline-flex items-center gap-1"
+              >
+                Browse Schools <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {quintileBreakdown.map((q) => (
+                <button
+                  key={q.key}
+                  onClick={() => navigate("/schools")}
+                  className="text-left rounded-xl border border-border p-3 hover:border-primary/30 transition-colors"
+                >
+                  <div className={`inline-flex items-center justify-center text-xs font-bold w-9 h-9 rounded-lg ${q.tint} mb-2`}>
+                    {q.key}
+                  </div>
+                  <div className="text-xl font-extrabold text-foreground leading-tight">{q.count.toLocaleString()}</div>
+                  <div className="text-[11px] text-muted-foreground">{q.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Announcement banner */}
           {showAnnouncement && (
             <div className="bg-logo-blue/5 border border-logo-blue/20 rounded-2xl p-4 flex items-center gap-4">
