@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, School, BookOpen, Bot, FlaskConical, GraduationCap, Users } from "lucide-react";
 import { z } from "zod";
+import { SchoolSelector } from "./SchoolSelector";
 
 const requestSchema = z.object({
   schoolName: z.string().trim().min(1, "School name is required").max(200, "School name must be less than 200 characters"),
@@ -33,6 +34,7 @@ const OUTREACH_TYPES = [
 export const SchoolRequestForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedSchool, setSelectedSchool] = useState<any>(null);
   const [formData, setFormData] = useState({
     schoolName: "",
     contactPerson: "",
@@ -169,14 +171,24 @@ export const SchoolRequestForm = () => {
               <School className="h-5 w-5 text-primary" />
               School Information
             </h3>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="schoolName">School Name *</Label>
+              <Label>Find your school *</Label>
+              <SchoolSelector
+                value={selectedSchool}
+                onSelect={(s) => {
+                  setSelectedSchool(s);
+                  setFormData({ ...formData, schoolName: s.institution_name });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Search the official school list. If your school isn't listed, type the name below.
+              </p>
               <Input
                 id="schoolName"
                 value={formData.schoolName}
                 onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
-                placeholder="e.g., Soweto High School"
+                placeholder="School name"
                 required
                 maxLength={200}
               />

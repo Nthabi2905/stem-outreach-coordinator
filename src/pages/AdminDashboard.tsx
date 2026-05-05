@@ -95,7 +95,7 @@ const AdminDashboard = () => {
 
   const [kpis, setKpis] = useState<KPI[]>([
     { icon: UsersIcon, label: "Total Learners", value: "—", trend: "—", tint: "bg-logo-teal/10 text-logo-teal" },
-    { icon: SchoolIcon, label: "Schools & Orgs", value: "—", trend: "—", tint: "bg-logo-purple/10 text-logo-purple" },
+    { icon: SchoolIcon, label: "Total Schools", value: "—", trend: "—", tint: "bg-logo-purple/10 text-logo-purple" },
     { icon: BarChart3, label: "Outreach Activities", value: "—", trend: "—", tint: "bg-logo-blue/10 text-logo-blue" },
     { icon: Handshake, label: "Partners", value: "—", trend: "—", tint: "bg-logo-orange/10 text-logo-orange" },
     { icon: Download, label: "Questionnaire Responses", value: "—", trend: "—", tint: "bg-logo-teal/10 text-logo-teal" },
@@ -105,6 +105,7 @@ const AdminDashboard = () => {
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
   const [engagementSeries, setEngagementSeries] = useState<{ x: number; y: number; label: string }[]>([]);
   const [programs, setPrograms] = useState<{ name: string; current: number; total: number; percent: number; color: string }[]>([]);
+  const [quintileBreakdown, setQuintileBreakdown] = useState<{ key: string; label: string; count: number; tint: string }[]>([]);
   const [impactStats, setImpactStats] = useState({
     learnersReached: 0,
     underservedSchools: 0,
@@ -188,10 +189,26 @@ const AdminDashboard = () => {
 
       setKpis([
         { icon: UsersIcon, label: "Total Learners", value: learnerSum.toLocaleString(), trend: `${schools.length} schools`, tint: "bg-logo-teal/10 text-logo-teal" },
-        { icon: SchoolIcon, label: "Schools & Orgs", value: ((schoolsRes.count || 0) + (orgsRes.count || 0)).toLocaleString(), trend: `${orgsRes.count || 0} orgs`, tint: "bg-logo-purple/10 text-logo-purple" },
+        { icon: SchoolIcon, label: "Total Schools", value: (schoolsRes.count || 0).toLocaleString(), trend: `${orgsRes.count || 0} orgs`, tint: "bg-logo-purple/10 text-logo-purple" },
         { icon: BarChart3, label: "Outreach Activities", value: (campaignsRes.count || 0).toLocaleString(), trend: trendStr(campaignsLastWeek, prevCampaignsRes.count || 0), tint: "bg-logo-blue/10 text-logo-blue" },
         { icon: Handshake, label: "Partners", value: (orgsRes.count || 0).toLocaleString(), trend: `${orgs.filter((o: any) => o.created_at >= weekAgo).length} new`, tint: "bg-logo-orange/10 text-logo-orange" },
         { icon: Download, label: "Questionnaire Responses", value: (questionnairesRes.count || 0).toLocaleString(), trend: trendStr(questionnairesLastWeek, prevQuestionnairesRes.count || 0), tint: "bg-logo-teal/10 text-logo-teal" },
+      ]);
+
+      // Quintile breakdown
+      const qTally: Record<string, number> = { Q1: 0, Q2: 0, Q3: 0, Q4: 0, Q5: 0, Other: 0 };
+      schools.forEach((s: any) => {
+        const q = s.quintile;
+        if (q && qTally[q] !== undefined) qTally[q]++;
+        else qTally.Other++;
+      });
+      setQuintileBreakdown([
+        { key: "Q1", label: "Most underserved", count: qTally.Q1, tint: "bg-rose-500/10 text-rose-700" },
+        { key: "Q2", label: "Underserved", count: qTally.Q2, tint: "bg-orange-500/10 text-orange-700" },
+        { key: "Q3", label: "Mid-tier", count: qTally.Q3, tint: "bg-amber-500/10 text-amber-700" },
+        { key: "Q4", label: "Better-resourced", count: qTally.Q4, tint: "bg-emerald-500/10 text-emerald-700" },
+        { key: "Q5", label: "Least disadvantaged", count: qTally.Q5, tint: "bg-sky-500/10 text-sky-700" },
+        { key: "Other", label: "Unspecified", count: qTally.Other, tint: "bg-secondary text-foreground" },
       ]);
 
       // Province distribution by learner count
@@ -703,6 +720,37 @@ const AdminDashboard = () => {
               <button className="mt-4 text-xs font-semibold text-logo-blue hover:underline inline-flex items-center gap-1">
                 View System Logs <ArrowRight className="w-3 h-3" />
               </button>
+            </div>
+          </div>
+
+          {/* Schools by Quintile */}
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Schools by Quintile</h3>
+                <p className="text-xs text-muted-foreground">South African school equity tiers (Q1 = most underserved).</p>
+              </div>
+              <button
+                onClick={() => navigate("/schools")}
+                className="text-xs font-semibold text-logo-blue hover:underline inline-flex items-center gap-1"
+              >
+                Browse Schools <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {quintileBreakdown.map((q) => (
+                <button
+                  key={q.key}
+                  onClick={() => navigate("/schools")}
+                  className="text-left rounded-xl border border-border p-3 hover:border-primary/30 transition-colors"
+                >
+                  <div className={`inline-flex items-center justify-center text-xs font-bold w-9 h-9 rounded-lg ${q.tint} mb-2`}>
+                    {q.key}
+                  </div>
+                  <div className="text-xl font-extrabold text-foreground leading-tight">{q.count.toLocaleString()}</div>
+                  <div className="text-[11px] text-muted-foreground">{q.label}</div>
+                </button>
+              ))}
             </div>
           </div>
 

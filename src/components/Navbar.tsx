@@ -37,6 +37,7 @@ const Navbar = () => {
 
   const authLinks = [
     { label: "Dashboard", to: "/" },
+    { label: "Schools", to: "/schools" },
     { label: "Campaigns", to: "/campaigns" },
     { label: "Planning", to: "/planning" },
     { label: "Partner with Us", to: "/questionnaires" },
