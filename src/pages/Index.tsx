@@ -9,7 +9,7 @@ import Hero from "@/components/Hero";
 import FeatureHighlights from "@/components/FeatureHighlights";
 import { SchoolRequestForm } from "@/components/SchoolRequestForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminDashboardView } from "@/components/dashboards/AdminDashboardView";
+import AdminDashboard from "./AdminDashboard";
 import { OrganizationDashboardView } from "@/components/dashboards/OrganizationDashboardView";
 import { SchoolOfficialDashboardView } from "@/components/dashboards/SchoolOfficialDashboardView";
 import { LearnerDashboardView } from "@/components/dashboards/LearnerDashboardView";
