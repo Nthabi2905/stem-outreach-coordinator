@@ -17,7 +17,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"school_official" | "learner">("learner");
+  const [role, setRole] = useState<"admin" | "organization" | "school_official" | "learner">("learner");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
 
   useEffect(() => {
@@ -217,17 +217,19 @@ const Auth = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Select value={role} onValueChange={(value: "school_official" | "learner") => setRole(value)}>
+                <Select value={role} onValueChange={(value: "admin" | "organization" | "school_official" | "learner") => setRole(value)}>
                   <SelectTrigger className="h-12 bg-card border-border">
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="school_official">School/Departmental Official</SelectItem>
-                    <SelectItem value="learner">Learner (Request mentorship)</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="organization">Organisation</SelectItem>
+                    <SelectItem value="school_official">School Official</SelectItem>
+                    <SelectItem value="learner">Learner</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground px-1">
-                  Organizations can contact us directly to set up admin accounts
+                  Admin and Organisation roles require approval before activation.
                 </p>
               </div>
               <div className="relative">
