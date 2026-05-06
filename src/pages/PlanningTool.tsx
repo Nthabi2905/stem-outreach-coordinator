@@ -409,29 +409,107 @@ const PlanningTool = () => {
     );
   }
 
+  const flowSteps = [
+    { num: 1, title: "Define Your Outreach", desc: "Select focus area, target grade(s) and location.", state: step >= 1 ? "active" : "pending" },
+    { num: 2, title: "AI Matches Schools", desc: "Our AI finds the best-fit schools using DBE & impact data.", state: step >= 2 ? "active" : "pending" },
+    { num: 3, title: "Plan & Schedule", desc: "Review suggestions, set dates, and confirm logistics.", state: step >= 3 ? "active" : "pending" },
+    { num: 4, title: "Invite & Confirm", desc: "Automate invitations and track confirmations.", state: step >= 4 ? "active" : "pending" },
+    { num: 5, title: "Deliver & Verify", desc: "Run your outreach and collect on-site evidence.", state: "pending" },
+    { num: 6, title: "Report Impact", desc: "AI generates your impact report instantly.", state: "pending" },
+  ];
+
+  const comparisons = [
+    { num: 1, title: "AI Matching Engine", sub: "(vs Manual Pairing)", current: ["Matching depends on personal networks", "Many schools overlooked"], edu: ["AI matches requests to suitable organisations", "Generates batches of underserved schools using DBE data"] },
+    { num: 2, title: "Automated Logistics", sub: "(vs Weeks of Admin Work)", current: ["Manual letters, calls, schedules, and follow-ups", "No unified calendar or reminders"], edu: ["Automates invitations, confirmations, scheduling, routing", "Cuts admin by up to 80%"] },
+    { num: 3, title: "On-Site Verification", sub: "(vs Unverified Data)", current: ["Self-reported outreach", "No standardised evidence collection"], edu: ["On-site reps collect attendance, photos, and verification", "Ensures credibility and transparency"] },
+    { num: 4, title: "Instant Impact Reports", sub: "(vs Manual Reports)", current: ["Reports inconsistent and time-consuming", "Funders get incomplete information"], edu: ["Auto-generates polished impact reports", "Standardised data across all organisations"] },
+    { num: 5, title: "National Outreach Analytics", sub: "(vs No Tracking)", current: ["No national view of coverage", "No trend or gap analysis"], edu: ["Real-time dashboards for provinces, districts, and schools", "Enables DSTI, SAASTA, SANSA to plan strategically"] },
+  ];
+
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-muted/30 pb-24">
       <DashboardHeader title="Planning Tool" onSignOut={handleSignOut} />
-      
+
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-primary/10 to-background px-4 py-8">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+      <div className="bg-background border-b px-6 py-8">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => navigate("/")}
           className="mb-4 -ml-2 text-muted-foreground"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back to Dashboard
         </Button>
-        
-        <div className="flex items-center gap-4 mb-4">
+
+        <div className="max-w-[1600px] mx-auto">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            Plan powerful outreach <span aria-hidden>👋</span>
+          </h1>
+          <p className="text-muted-foreground mb-6">Use AI to find the right schools, plan logistics and deliver impact.</p>
+
+          {/* 6-step flow */}
+          <div className="bg-card border rounded-xl p-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {flowSteps.map((s, i) => (
+                <div key={s.num} className="relative">
+                  <div className={`rounded-lg border p-4 h-full ${s.state === "active" ? "border-primary/40 bg-primary/5" : "bg-muted/30"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${s.state === "active" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                        {s.num}
+                      </div>
+                      <p className="text-sm font-semibold leading-tight">{s.title}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{s.desc}</p>
+                    <div className="mt-3 text-xs flex items-center gap-1">
+                      {s.state === "active" ? (
+                        <span className="text-primary flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {step === s.num ? "In progress" : "Completed"}</span>
+                      ) : (
+                        <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Pending</span>
+                      )}
+                    </div>
+                  </div>
+                  {i < flowSteps.length - 1 && (
+                    <ArrowRight className="hidden lg:block absolute top-1/2 -right-2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Why EduReach AI - comparison cards */}
+          <div className="mt-6 bg-card border rounded-xl p-5">
+            <h2 className="text-lg font-semibold mb-1">How EduReach AI Makes Outreach Smarter</h2>
+            <p className="text-sm text-muted-foreground mb-5">We solve the biggest challenges organisations face — with AI.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {comparisons.map((c) => (
+                <div key={c.num} className="rounded-lg border p-4 bg-background">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">{c.num}</div>
+                    <p className="text-sm font-semibold">{c.title}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">{c.sub}</p>
+                  <p className="text-xs font-semibold text-foreground">Current:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1 mb-3 list-disc list-inside">
+                    {c.current.map((x, i) => <li key={i}>{x}</li>)}
+                  </ul>
+                  <p className="text-xs font-semibold text-primary">EduReach AI:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                    {c.edu.map((x, i) => <li key={i}>{x}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mt-6 max-w-[1600px] mx-auto">
           <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">
             <Sparkles className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">AI School Matcher</h1>
-            <p className="text-muted-foreground">Generate batches of underserved schools</p>
+            <h2 className="text-xl font-bold">AI School Matcher</h2>
+            <p className="text-muted-foreground text-sm">Configure your campaign below to generate matched schools</p>
           </div>
         </div>
 
